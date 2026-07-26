@@ -3,307 +3,551 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sales Pipeline Flow, Audit & Report — Reputation Pros</title>
+<title>Pipeline Audit — Reputation Pros</title>
+<meta name="color-scheme" content="light dark">
 <style>
   :root{
-    --auto-fill:#E1F5EE; --auto-line:#1D9E75; --auto-text:#085041;
-    --man-fill:#FAEEDA;  --man-line:#EF9F27;  --man-text:#633806;
-    --mix-fill:#EEEDFE;  --mix-line:#7F77DD;  --mix-text:#3C3489;
-    --end-fill:#FCEBEB;  --end-line:#E24B4A;  --end-text:#791F1F;
-    --ok:#1D9E75; --warn:#EF9F27; --fail:#E24B4A; --pending:#9aa19c;
-    --ink:#1f2420; --muted:#6b7370; --bg:#f4f5f3; --card:#ffffff; --border:#dde1dd;
+    --bg:#EEF3F8; --panel:#FFFFFF; --panel2:#F6F9FC; --panel3:#EDF2F8;
+    --ink:#0F1620; --ink2:#5B6B7D; --line:#DEE6EF; --line2:#C9D6E4;
+    --blue:#2C83F6; --blueInk:#1F63C4; --blueSoft:#E8F1FE;
+    --ok:#12A46B; --okSoft:#E3F6EE; --warn:#B9770B; --warnSoft:#FBF1DF;
+    --bad:#D93A3A; --badSoft:#FCEAEA;
+    --shadow:0 1px 2px rgba(11,20,37,.06), 0 10px 28px -16px rgba(11,20,37,.35);
+    --grid:rgba(15,22,32,.055); --logoPlate:#0B1425; --sheet:#FFFFFF;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  [data-theme="dark"]{
+    --bg:#070C14; --panel:#0F1725; --panel2:#131D2E; --panel3:#18243A;
+    --ink:#E9EFF7; --ink2:#8496AC; --line:#1E2A3D; --line2:#2B3B54;
+    --blue:#4C97FF; --blueInk:#8FBEFF; --blueSoft:#122A47;
+    --ok:#21C97A; --okSoft:#0E2A20; --warn:#E0A03A; --warnSoft:#2A2113;
+    --bad:#F26A6A; --badSoft:#2E1618;
+    --shadow:0 1px 0 rgba(255,255,255,.04), 0 24px 48px -28px #000;
+    --grid:rgba(140,180,255,.07); --logoPlate:transparent; --sheet:#0F1725;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
-  body{font-family:"Segoe UI", system-ui, -apple-system, sans-serif; color:var(--ink); background:var(--bg); height:100vh; display:flex; flex-direction:column; overflow:hidden;}
-  header{display:flex; align-items:center; gap:14px; padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border); flex-wrap:wrap;}
-  header h1{font-size:16px; font-weight:600;}
-  header .sub{font-size:12px; color:var(--muted);}
-  .tabs{display:flex; gap:4px; margin-left:24px;}
-  .tab{font-size:13px; padding:7px 16px; border:1px solid var(--border); border-radius:9px; cursor:pointer; background:#fff; color:var(--muted);}
-  .tab.active{background:#1f2420; color:#fff; border-color:#1f2420;}
-  .toolbar{display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; align-items:center;}
-  button{font:inherit; font-size:12.5px; padding:6px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; color:var(--ink);}
-  button:hover{background:#f0f2ef;}
-  button.active{background:#1f2420; color:#fff; border-color:#1f2420;}
-  button.danger{color:#a32d2d; border-color:#f0c0c0;}
-  button.danger:hover{background:#fceaea;}
-  .legend{display:flex; gap:14px; padding:6px 16px; background:var(--card); border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); flex-wrap:wrap; align-items:center;}
-  .dot{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; border:1.5px solid;}
-  .d-auto{background:var(--auto-fill); border-color:var(--auto-line);}
-  .d-man{background:var(--man-fill); border-color:var(--man-line);}
-  .d-mix{background:var(--mix-fill); border-color:var(--mix-line);}
-  .d-end{background:var(--end-fill); border-color:var(--end-line);}
-  #main{flex:1; display:flex; overflow:hidden;}
-  #canvasWrap{flex:1; position:relative; overflow:hidden; background:
-    linear-gradient(90deg, rgba(0,0,0,0.035) 1px, transparent 1px) 0 0/26px 26px,
-    linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px) 0 0/26px 26px, var(--bg);}
+  body{font-family:-apple-system,"Segoe UI",system-ui,"Helvetica Neue",Arial,sans-serif; -webkit-font-smoothing:antialiased;
+    color:var(--ink); background:var(--bg); height:100vh; display:flex; flex-direction:column; overflow:hidden; font-size:13px; line-height:1.45;}
+  button{font:inherit; cursor:pointer; color:inherit;}
+  input, textarea, select{font:inherit; color:inherit;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ---------------- Header ---------------- */
+  header{display:flex; align-items:center; gap:16px; padding:0 20px; height:56px; flex:none;
+    background:var(--panel); border-bottom:1px solid var(--line); position:relative; z-index:20;}
+  .brand{display:flex; align-items:center; padding-right:16px; border-right:1px solid var(--line); height:56px;}
+  .brandPlate{background:var(--logoPlate); border-radius:7px; padding:5px 9px; display:flex; align-items:center;}
+  .brandPlate img{height:19px; display:block;}
+  .hTitle{font-size:13.5px; font-weight:650; letter-spacing:-.01em;}
+  .hSub{font-size:11px; color:var(--ink2); white-space:nowrap;}
+  nav.tabs{display:flex; gap:2px; margin-left:26px; background:var(--panel3); padding:3px; border-radius:9px; flex:none;}
+  nav.tabs .tab{height:26px; padding:0 12px; border:0; border-radius:7px; background:transparent;
+    color:var(--ink2); font-size:12.5px; font-weight:600;}
+  nav.tabs .tab:hover{color:var(--ink);}
+  nav.tabs .tab.active{background:var(--panel); color:var(--ink); box-shadow:0 1px 2px rgba(11,20,37,.08);}
+  .hSpacer{flex:1;}
+  .savePill{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink2);
+    padding:4px 10px; border:1px solid var(--line); border-radius:20px; white-space:nowrap;}
+  .savePill i{width:6px; height:6px; border-radius:50%; background:var(--line2); display:block; flex:none;}
+  .savePill.saved i{background:var(--ok);}
+  .savePill.saving i{background:var(--warn);}
+  .savePill.err{color:var(--bad); border-color:var(--bad); cursor:pointer;}
+  .savePill.err i{background:var(--bad);}
+  .iconBtn{width:32px; height:32px; border-radius:8px; border:1px solid var(--line); background:var(--panel2);
+    color:var(--ink2); font-size:14px; display:grid; place-items:center; flex:none;}
+  .iconBtn:hover{color:var(--ink); border-color:var(--line2);}
+  .primaryBtn{height:32px; padding:0 14px; border-radius:8px; border:0; background:var(--blue); color:#fff;
+    font-weight:600; font-size:12.5px; flex:none;}
+  .primaryBtn:hover{background:var(--blueInk);}
+  .ghostBtn{height:32px; padding:0 13px; border-radius:8px; border:1px solid var(--line); background:var(--panel2);
+    color:var(--ink); font-weight:600; font-size:12.5px;}
+  .ghostBtn:hover{border-color:var(--line2);}
+  .menuWrap{position:relative; flex:none;}
+  .menu{position:absolute; right:0; top:38px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow); padding:5px; min-width:186px; display:none; z-index:30;}
+  .menu.open{display:block;}
+  .menu button{display:block; width:100%; text-align:left; padding:8px 10px; border:0; background:transparent;
+    border-radius:7px; font-size:12.5px;}
+  .menu button:hover{background:var(--panel2);}
+  .menu button.danger{color:var(--bad);}
+  .menu button.danger:hover{background:var(--badSoft);}
+  .menu hr{border:0; border-top:1px solid var(--line); margin:5px 0;}
+
+  #main{flex:1; display:flex; overflow:hidden; min-height:0;}
+
+  /* ---------------- Flow ---------------- */
+  #flowView{flex:1; display:flex; overflow:hidden; min-width:0;}
+  #flowView.hidden{display:none;}
+  #canvasWrap{flex:1; position:relative; overflow:hidden; min-width:0;
+    background-color:var(--bg); background-image:radial-gradient(var(--grid) 1px, transparent 1px); background-size:22px 22px;}
   #svg{width:100%; height:100%; display:block; cursor:grab; touch-action:none;}
   #svg.panning{cursor:grabbing;}
   #svg.connectMode{cursor:crosshair;}
-  #panel{width:340px; min-width:340px; background:var(--card); border-left:1px solid var(--border); overflow-y:auto; padding:16px; display:none;}
-  #panel.open{display:block;}
-  #panel h2{font-size:14px; margin-bottom:4px;}
-  #panel .badge{display:inline-block; font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; margin:6px 6px 12px 0;}
-  #panel label{display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:12px 0 4px;}
-  #panel input[type=text], #panel select, #panel textarea{width:100%; font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:#fff;}
-  #panel textarea{resize:vertical; min-height:70px; line-height:1.45;}
-  #panel .hint{font-size:11px; color:var(--muted); margin-top:3px;}
-  #panel .row{display:flex; gap:8px; margin-top:14px;}
+  .canvasBar{position:absolute; top:14px; left:16px; display:flex; gap:6px; align-items:center; z-index:3; flex-wrap:wrap;}
+  .segGroup{display:flex; background:var(--panel); border:1px solid var(--line); border-radius:9px;
+    box-shadow:var(--shadow); overflow:hidden;}
+  .segGroup button{height:32px; padding:0 12px; border:0; background:transparent; color:var(--ink);
+    font-size:12.5px; font-weight:600;}
+  .segGroup button:hover{background:var(--panel2);}
+  .segGroup button.on{background:var(--blue); color:#fff;}
+  .segDiv{width:1px; background:var(--line); flex:none;}
+  .floatPill{display:flex; align-items:center; gap:9px; height:34px; padding:0 12px; background:var(--panel);
+    border:1px solid var(--line); border-radius:9px; box-shadow:var(--shadow); font-size:11px; color:var(--ink2);}
+  .floatPill .lg{display:flex; align-items:center; gap:5px; white-space:nowrap;}
+  .floatPill .lg i{width:7px; height:7px; border-radius:50%; display:block;}
+  .edgeBar{display:flex; align-items:center; gap:6px; height:34px; padding:0 6px 0 12px; background:var(--panel);
+    border:1px solid var(--line); border-radius:9px; box-shadow:var(--shadow);}
+  .edgeBar input{width:150px; height:24px; border:1px solid var(--line); border-radius:6px; background:var(--panel2);
+    padding:0 8px; font-size:12px;}
+  .edgeBar button{height:24px; padding:0 9px; border-radius:6px; border:1px solid var(--line); background:var(--panel2);
+    font-size:11.5px; color:var(--bad); font-weight:600;}
+  #zoomHud{position:absolute; bottom:16px; right:20px; display:flex; align-items:center; gap:2px; background:var(--panel);
+    border:1px solid var(--line); border-radius:9px; box-shadow:var(--shadow); padding:3px; z-index:3;}
+  #zoomHud button{width:28px; height:26px; border:0; background:transparent; border-radius:6px; color:var(--ink2); font-size:14px;}
+  #zoomHud button:hover{background:var(--panel2); color:var(--ink);}
+  #zoomLbl{font-size:11.5px; color:var(--ink2); width:40px; text-align:center;}
+  #tip{position:absolute; top:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--panel);
+    font-size:12px; padding:8px 14px; border-radius:20px; display:none; pointer-events:none; white-space:nowrap; z-index:9;
+    box-shadow:var(--shadow);}
   .node-g{cursor:move;}
-  .node-g rect.body{stroke-width:1.6;}
-  .node-g.selected rect.body{stroke-width:3;}
-  .node-g.connSrc rect.body{stroke-dasharray:6 4; stroke-width:3;}
   .edge-hit{stroke:transparent; stroke-width:16; fill:none; cursor:pointer;}
-  .edge-line{fill:none; stroke-width:1.8; pointer-events:none;}
-  .edge-line.selected{stroke-width:3.5;}
-  .edge-lbl{font-size:10.5px; fill:#5f5e5a; pointer-events:none;}
-  .edge-lbl-bg{fill:var(--bg); opacity:.92; pointer-events:none;}
+  .edge-line{fill:none; stroke:var(--line2); stroke-width:1.5; pointer-events:none;}
+  .edge-line.selected{stroke:var(--blue); stroke-width:2.4;}
+  .edge-lbl{font-size:10px; fill:var(--ink2); font-family:var(--mono); pointer-events:none;}
+  .edge-lbl-bg{fill:var(--bg); opacity:.9; pointer-events:none;}
   text{user-select:none;}
-  #hud{position:absolute; bottom:14px; left:14px; display:flex; gap:6px;}
-  #hud button{width:34px; height:34px; padding:0; font-size:16px; border-radius:9px;}
-  #zoomLbl{position:absolute; bottom:20px; left:130px; font-size:12px; color:var(--muted);}
-  #tip{position:absolute; top:12px; left:50%; transform:translateX(-50%); background:#1f2420; color:#fff; font-size:12px; padding:7px 14px; border-radius:20px; display:none; pointer-events:none; white-space:nowrap; z-index:9;}
-  #auditView, #reportView, #wfView{flex:1; overflow-y:auto; padding:20px; display:none;}
-  #auditView.active, #reportView.active, #wfView.active{display:block;}
-  /* ---- Workflow audits (hoja tipo spreadsheet) ---- */
-  .wfBar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
-  .wfChip{font-size:12px; padding:4px 11px; border-radius:20px; background:var(--card); border:1px solid var(--border); color:var(--muted);}
-  .wfChip b{color:var(--ink);}
-  .wfScroll{overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--card);}
-  .wfTable{width:100%; min-width:1160px; border-collapse:collapse; table-layout:fixed;}
-  .wfTable th{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
-    text-align:left; padding:10px 12px; background:#fafbf9; border-bottom:1px solid var(--border); border-right:1px solid var(--border); white-space:nowrap;}
-  .wfTable th:last-child, .wfTable td:last-child{border-right:none;}
-  .wfTable td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:0; vertical-align:top;}
+
+  /* ---------------- Panel lateral (paso) ---------------- */
+  #panel{width:340px; min-width:340px; background:var(--panel); border-left:1px solid var(--line);
+    overflow-y:auto; padding:18px 20px 24px; display:none;}
+  #panel.open{display:block;}
+  .pEyebrow{font-size:10px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--ink2);}
+  #panel h2{font-size:19px; font-weight:680; letter-spacing:-.02em; margin-top:4px; line-height:1.2;}
+  .pStats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px;}
+  .pStat{border:1px solid var(--line); border-radius:10px; padding:9px 10px; background:var(--panel2);}
+  .pStat .k{font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink2);}
+  .pStat .v{font-size:21px; font-weight:700; letter-spacing:-.03em; margin-top:2px;}
+  .pStat .v small{font-size:11px; font-weight:600; color:var(--ink2);}
+  .pStat.ok{background:var(--okSoft); border-color:transparent;} .pStat.ok .v{color:var(--ok);}
+  .pStat.bad{background:var(--badSoft); border-color:transparent;} .pStat.bad .v{color:var(--bad);}
+  .pLabel{font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink2); margin:18px 0 7px;}
+  .segGrid{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+  .segGrid button, .segRow button{height:32px; border-radius:8px; border:1px solid var(--line); background:var(--panel2);
+    font-size:12px; font-weight:600; color:var(--ink2);}
+  .segGrid button:hover, .segRow button:hover{border-color:var(--line2); color:var(--ink);}
+  .segGrid button.on, .segRow button.on{border-color:transparent;}
+  button.on.st-ok{background:var(--okSoft); color:var(--ok); box-shadow:inset 0 0 0 1px var(--ok);}
+  button.on.st-issue{background:var(--warnSoft); color:var(--warn); box-shadow:inset 0 0 0 1px var(--warn);}
+  button.on.st-fail{background:var(--badSoft); color:var(--bad); box-shadow:inset 0 0 0 1px var(--bad);}
+  button.on.st-pending{background:var(--panel3); color:var(--ink); box-shadow:inset 0 0 0 1px var(--line2);}
+  .fld{width:100%; border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:8px 10px; font-size:12.5px;}
+  .fld:focus{outline:none; border-color:var(--blue); background:var(--panel); box-shadow:0 0 0 3px var(--blueSoft);}
+  textarea.fld{resize:vertical; min-height:74px; line-height:1.5;}
+  .chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .chip{font-size:11px; padding:3px 9px; border-radius:20px; background:var(--blueSoft); color:var(--blueInk); font-weight:600;}
+  .pHint{font-size:11px; color:var(--ink2); margin-top:5px;}
+  #panel details{margin-top:18px; border-top:1px solid var(--line); padding-top:14px;}
+  #panel summary{font-size:11.5px; font-weight:600; color:var(--ink2); cursor:pointer; list-style:none;}
+  #panel summary::-webkit-details-marker{display:none;}
+  #panel summary:before{content:"▸ "; }
+  #panel details[open] summary:before{content:"▾ "; }
+  .dangerBtn{width:100%; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--panel2);
+    color:var(--bad); font-weight:600; font-size:12.5px; margin-top:14px;}
+  .dangerBtn:hover{background:var(--badSoft); border-color:var(--bad);}
+
+  /* ---------------- Audit (master–detail) ---------------- */
+  #auditView{flex:1; display:none; min-width:0;}
+  #auditView.active{display:flex;}
+  .auditNav{width:268px; min-width:268px; background:var(--panel); border-right:1px solid var(--line);
+    display:flex; flex-direction:column;}
+  .auditNavTop{padding:14px 16px 11px; border-bottom:1px solid var(--line);}
+  .searchBox{width:100%; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:8px;
+    background:var(--panel2); font-size:12px;}
+  .searchBox:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blueSoft);}
+  .filterChips{display:flex; gap:5px; margin-top:9px;}
+  .filterChips button{font-size:11px; font-weight:600; padding:4px 9px; border-radius:20px; background:var(--panel2);
+    border:1px solid var(--line); color:var(--ink2);}
+  .filterChips button.on{background:var(--ink); color:var(--panel); border-color:var(--ink);}
+  .auditNavList{flex:1; overflow-y:auto; padding:10px 10px 16px;}
+  .navGroup{font-size:10px; font-weight:700; letter-spacing:.09em; color:var(--ink2); text-transform:uppercase; padding:12px 8px 6px;}
+  .navItem{display:flex; align-items:center; gap:9px; padding:8px 9px; border-radius:8px; width:100%;
+    border:0; background:transparent; text-align:left;}
+  .navItem:hover{background:var(--panel2);}
+  .navItem i{width:6px; height:6px; border-radius:50%; display:block; flex:none;}
+  .navItem .nm{flex:1; font-size:12.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .navItem .ct{font-size:11px; color:var(--ink2);}
+  .navItem.on{background:var(--blueSoft); box-shadow:inset 2px 0 0 var(--blue);}
+  .navItem.on .nm{font-weight:650; color:var(--blueInk);}
+  .navItem.on .ct{color:var(--blueInk);}
+  .auditMain{flex:1; overflow-y:auto; min-width:0;}
+  .auditTop{display:flex; align-items:center; gap:22px; padding:18px 24px; background:var(--panel);
+    border-bottom:1px solid var(--line); flex-wrap:wrap;}
+  .bigPct{font-size:30px; font-weight:700; letter-spacing:-.03em;}
+  .auditTop .sub{font-size:12px; color:var(--ink2);}
+  .trackWide{flex:1; min-width:200px; height:8px; border-radius:4px; background:var(--panel3); overflow:hidden; display:flex;}
+  .kpis{display:flex; gap:10px;}
+  .kpi{border:1px solid var(--line); border-radius:10px; padding:8px 14px; min-width:92px; background:var(--panel2);}
+  .kpi .k{font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink2);}
+  .kpi .v{font-size:20px; font-weight:700; letter-spacing:-.03em;}
+  .kpi.ok{background:var(--okSoft); border-color:transparent;} .kpi.ok .v{color:var(--ok);}
+  .kpi.bad{background:var(--badSoft); border-color:transparent;} .kpi.bad .v{color:var(--bad);}
+  .detailWrap{padding:20px 24px 40px;}
+  .detailHead{display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:14px;}
+  .detailHead h2{font-size:18px; font-weight:680; letter-spacing:-.02em;}
+  .detailHead .meta{font-size:12px; color:var(--ink2); margin-top:3px;}
+  .segRow{display:flex; gap:6px; margin-left:auto; flex:none;}
+  .segRow button{padding:0 11px;}
+  .alertBar{display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px;
+    background:var(--badSoft); border:1px solid transparent; font-size:12.5px; margin-bottom:16px; flex-wrap:wrap;}
+  .alertBar b{color:var(--bad); font-size:11px; letter-spacing:.06em; text-transform:uppercase;}
+  .alertBar .txt{color:var(--ink); flex:1; min-width:180px;}
+  .alertBar button{margin-left:auto; border:0; background:transparent; color:var(--bad); font-weight:650; font-size:12px;}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+  @media (max-width:1100px){ .cols{grid-template-columns:1fr;} }
+  .colCard{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px 16px;}
+  .colCard .ch{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .colCard .ch h4{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink2);}
+  .colCard .ch .ct{font-size:11px; color:var(--ink2);}
+  .grpLbl{font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2); margin:14px 0 4px;}
+  .grpLbl:first-child{margin-top:0;}
+  .cp{display:flex; align-items:center; gap:11px; padding:6px 7px; border-radius:8px;}
+  .cp:hover{background:var(--panel2);}
+  .cp.focus{background:var(--panel2); box-shadow:inset 0 0 0 1px var(--line2);}
+  .cp .lbl{font-size:12.5px; min-width:0;}
+  .cp.isFail .lbl{color:var(--bad);}
+  .cp.isOk .lbl{color:var(--ink2);}
+  .cp .kbd{margin-left:auto; font-size:10.5px; color:var(--ink2); font-family:var(--mono); opacity:0; flex:none;}
+  .cp.focus .kbd{opacity:1;}
+  .tri{display:flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; flex:none; background:var(--panel);}
+  .tri button{width:24px; height:22px; display:grid; place-items:center; font-size:11px; border:0;
+    background:transparent; color:var(--line2); padding:0;}
+  .tri button + button{border-left:1px solid var(--line);}
+  .tri button:hover{background:var(--panel3); color:var(--ink2);}
+  .tri button.on-y{background:var(--ok); color:#fff; font-weight:700;}
+  .tri button.on-n{background:var(--bad); color:#fff; font-weight:700;}
+  .tri button.on-m{background:var(--panel3); color:var(--ink2); font-weight:700;}
+  .cp.focus .tri{border-color:var(--line2); box-shadow:0 0 0 3px var(--blueSoft);}
+  .shortcuts{margin-top:16px; font-size:11px; color:var(--ink2);}
+  .shortcuts kbd{font-family:var(--mono); background:var(--panel3); border-radius:4px; padding:1px 5px; margin:0 2px;}
+  .notesArea{margin-top:16px;}
+  .emptyNote{padding:30px; text-align:center; color:var(--ink2); font-size:12.5px;}
+
+  /* ---------------- Workflows ---------------- */
+  #wfView{flex:1; display:none; overflow-y:auto; min-width:0;}
+  #wfView.active{display:block;}
+  .wfWrap{padding:22px 24px 40px;}
+  .wfHead{display:flex; align-items:flex-start; gap:14px; margin-bottom:16px; flex-wrap:wrap;}
+  .wfHead h2{font-size:19px; font-weight:680; letter-spacing:-.02em;}
+  .wfHead .sub{font-size:12px; color:var(--ink2); margin-top:2px;}
+  .wfCounts{display:flex; align-items:center; gap:14px; margin-left:auto; font-size:11.5px; flex-wrap:wrap;}
+  .wfCounts b{font-weight:700;}
+  .wfScroll{overflow-x:auto; background:var(--panel); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);}
+  .wfTable{width:100%; min-width:1120px; border-collapse:collapse; table-layout:fixed;}
+  .wfTable th{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--ink2);
+    text-align:left; padding:11px 14px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  .wfTable td{border-bottom:1px solid var(--line); padding:0; vertical-align:top;}
   .wfTable tr:last-child td{border-bottom:none;}
-  .wfTable tr:hover td{background:#fcfdfb;}
-  .wfNum{width:40px; text-align:center; font-size:11.5px; color:var(--muted); padding:12px 0 !important; background:#fafbf9;}
-  .wfCell{width:100%; border:none; background:transparent; font:inherit; font-size:13px; line-height:1.45;
-    padding:10px 12px; resize:none; overflow:hidden; color:var(--ink); display:block; min-height:40px;}
-  .wfCell:focus{outline:2px solid #1f2420; outline-offset:-2px; background:#fff; border-radius:4px;}
-  .wfCell::placeholder{color:#b9c0ba;}
-  .wfSel{font:inherit; font-size:12px; font-weight:600; padding:6px 8px; margin:7px 10px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; background:#fff; width:calc(100% - 20px);}
-  .wf-on{border-color:var(--ok); color:var(--ok); background:#eefaf4;}
-  .wf-off{color:var(--muted); background:#f4f5f3;}
-  .wfType{color:var(--ink);}
-  .wf-checking{color:var(--muted);}
-  .wf-wip{border-color:var(--warn); color:#854F0B; background:#fdf6e8;}
-  .wf-pass{border-color:var(--ok); color:var(--ok); background:#eefaf4;}
-  .wf-fix{border-color:var(--fail); color:var(--fail); background:#fdefef;}
+  .wfTable tbody tr:hover td{background:var(--panel2);}
+  .wfTable tbody tr.rowFix td{background:var(--badSoft);}
+  .wfNum{text-align:center; font-size:11.5px; color:var(--ink2); padding:14px 0 !important;}
+  .wfCell{width:100%; border:none; background:transparent; font-size:12.5px; line-height:1.5;
+    padding:11px 14px; resize:none; overflow:hidden; display:block; min-height:42px;}
+  .wfCell:focus{outline:none; background:var(--panel2); box-shadow:inset 0 0 0 2px var(--blue); border-radius:6px;}
+  .wfCell::placeholder{color:var(--line2);}
+  .wfName{font-weight:650; padding-bottom:0; min-height:34px;}
+  .wfLink{font-size:11px; color:var(--blue); padding-top:0; min-height:24px;}
   .wfLinkWrap{display:flex; align-items:flex-start;}
-  .wfOpen{flex:none; padding:11px 10px 0 2px; color:var(--muted); text-decoration:none; font-size:13px; line-height:1;}
-  .wfOpen:hover{color:var(--ink);}
-  .wfDel{border:none; background:transparent; color:#b9c0ba; font-size:13px; padding:10px 12px; cursor:pointer; width:100%;}
-  .wfDel:hover{color:var(--fail); background:#fdefef;}
-  .wfEmpty{padding:26px; text-align:center; color:var(--muted); font-size:13px;}
-  #flowView{flex:1; display:flex; overflow:hidden;}
-  #flowView.hidden{display:none;}
-  .summary{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
-  .sumCard{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 18px; min-width:130px;}
-  .sumCard .num{font-size:22px; font-weight:600;}
-  .sumCard .lbl{font-size:11.5px; color:var(--muted);}
-  .auditSection{background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden;}
-  .auditHead{display:flex; align-items:center; gap:10px; padding:13px 16px; cursor:pointer; flex-wrap:wrap;}
-  .auditHead:hover{background:#fafbf9;}
-  .auditHead h3{font-size:14px; font-weight:600; flex:1; min-width:180px;}
-  .typeBadge{font-size:10.5px; padding:2px 9px; border-radius:20px; font-weight:600; border:1px solid;}
-  .pct{font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:20px; background:#f0f2ef; color:var(--muted);}
-  .statusSel{font:inherit; font-size:12px; padding:5px 8px; border-radius:8px; border:1.5px solid var(--border); font-weight:600; cursor:pointer;}
-  .statusSel.s-ok{border-color:var(--ok); color:var(--ok); background:#eefaf4;}
-  .statusSel.s-issue{border-color:var(--warn); color:#854F0B; background:#fdf6e8;}
-  .statusSel.s-fail{border-color:var(--fail); color:var(--fail); background:#fdefef;}
-  .statusSel.s-pending{color:var(--muted);}
-  .chev{font-size:12px; color:var(--muted); transition:transform .15s;}
-  .auditSection.open .chev{transform:rotate(90deg);}
-  .auditBody{display:none; padding:0 16px 16px; border-top:1px solid var(--border);}
-  .auditSection.open .auditBody{display:block;}
-  .colGrid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:12px;}
-  @media (max-width:820px){ .colGrid{grid-template-columns:1fr;} }
-  .colGrid h4{font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;}
-  .grpLbl{font-size:10.5px; font-weight:700; color:#8a918c; margin:10px 0 2px; letter-spacing:.03em;}
-  .chk{display:flex; align-items:flex-start; gap:8px; padding:4px 0; font-size:13px; line-height:1.4;}
-  .chk input{margin-top:2.5px; width:15px; height:15px; accent-color:var(--ok); cursor:pointer; flex:none;}
-  .chk.checked > span:last-child{color:var(--muted); text-decoration:line-through; text-decoration-color:#c9d6cd;}
-  .chk .no{flex:none; font-size:10.5px; padding:1px 7px; border-radius:12px; border:1px solid var(--border); color:var(--muted); cursor:pointer; margin-top:1px;}
-  .chk .no.on{border-color:var(--fail); color:var(--fail); background:#fdefef; font-weight:600;}
-  .notes{width:100%; font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-top:12px; resize:vertical; min-height:52px;}
-  .ownerLine{font-size:12px; color:var(--muted); margin-top:8px;}
-  .toolTag{font-size:11px; background:#f0f2ef; border:1px solid var(--border); border-radius:12px; padding:1px 9px; color:var(--muted);}
-  .progressBar{height:6px; background:#e7eae6; border-radius:4px; overflow:hidden; margin-top:6px;}
-  .progressBar i{display:block; height:100%; background:var(--ok);}
-  .barRow{display:flex; align-items:center; gap:10px; margin:4px 0;}
-  .barRow .bn{width:230px; font-size:12.5px; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .barRow .bTrack{flex:1; height:10px; background:#e7eae6; border-radius:5px; overflow:hidden; display:flex;}
-  .barRow .bp{font-size:11.5px; width:44px; text-align:right; color:var(--muted); flex:none;}
-  .rCard{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:16px;}
-  .rCard h3{font-size:14px; margin-bottom:10px;}
-  .miss{font-size:12.5px; padding:3px 0 3px 10px; border-left:3px solid var(--pending); margin:3px 0; color:var(--ink);}
-  .miss.f{border-left-color:var(--fail); background:#fdf3f3;}
-  .miss small{color:var(--muted);}
-  .bigPct{font-size:40px; font-weight:700;}
+  .wfOpen{flex:none; padding:2px 12px 0 0; color:var(--ink2); text-decoration:none; font-size:12px;}
+  .wfOpen:hover{color:var(--blue);}
+  .wfSel{border:1px solid var(--line); border-radius:20px; background:var(--panel2); font-size:11px; font-weight:650;
+    padding:4px 8px; margin:11px 14px; max-width:calc(100% - 28px);}
+  .wfSel:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px var(--blueSoft);}
+  .wfType{background:var(--blueSoft); color:var(--blueInk); border-color:transparent;}
+  .wfType.empty{background:var(--panel2); color:var(--ink2); border-color:var(--line);}
+  .wf-on{background:var(--okSoft); color:var(--ok); border-color:transparent;}
+  .wf-off{background:var(--panel3); color:var(--ink2); border-color:transparent;}
+  .wf-checking{background:var(--panel2); color:var(--ink2);}
+  .wf-wip{background:var(--warnSoft); color:var(--warn); border-color:transparent;}
+  .wf-pass{background:var(--okSoft); color:var(--ok); border-color:transparent;}
+  .wf-fix{background:var(--bad); color:#fff; border-color:transparent;}
+  .wfDel{border:none; background:transparent; color:var(--line2); font-size:13px; padding:13px 10px; width:100%;}
+  .wfDel:hover{color:var(--bad);}
+  .wfAddRow{width:100%; text-align:left; padding:11px 16px; border:0; background:transparent; color:var(--ink2);
+    font-size:12.5px; border-top:1px solid var(--line);}
+  .wfAddRow:hover{background:var(--panel2); color:var(--blue);}
+  .wfEmpty{padding:30px; text-align:center; color:var(--ink2); font-size:12.5px;}
+
+  /* ---------------- Report ---------------- */
+  #reportView{flex:1; display:none; overflow-y:auto; min-width:0; background:var(--bg);}
+  #reportView.active{display:block;}
+  .rptBar{display:flex; align-items:center; gap:10px; padding:12px 24px; background:var(--panel);
+    border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2;}
+  .rptBar .note{font-size:12px; color:var(--ink2);}
+  .rptOuter{padding:26px 20px 46px; display:flex; justify-content:center;}
+  .rptSheet{width:1000px; max-width:100%; background:var(--sheet); border:1px solid var(--line); border-radius:4px;
+    box-shadow:var(--shadow); overflow:hidden;}
+  .rptHero{background:#0B1425; color:#fff; padding:34px 44px 30px; position:relative; overflow:hidden;}
+  .rptHero .dots{position:absolute; inset:0; background-image:radial-gradient(rgba(76,151,255,.22) 1px, transparent 1px);
+    background-size:16px 16px; opacity:.55;}
+  .rptHero .inner{position:relative; display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap;}
+  .rptHero img{height:22px; display:block; margin-bottom:22px;}
+  .rptEyebrow{font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#7FB0FF;}
+  .rptHero h1{font-size:34px; font-weight:700; letter-spacing:-.03em; line-height:1.12; margin-top:8px; max-width:560px;}
+  .rptHero .lede{font-size:13px; color:#9FB2CC; margin-top:10px; max-width:520px;}
+  .rptScore{text-align:right; flex:none; margin-left:auto;}
+  .rptScore .big{font-size:56px; font-weight:700; letter-spacing:-.04em; line-height:1;}
+  .rptScore .cap{font-size:12px; color:#9FB2CC; margin-top:4px;}
+  .rptKpis{display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--line);}
+  .rptKpis > div{padding:18px 22px; border-right:1px solid var(--line);}
+  .rptKpis > div:last-child{border-right:0;}
+  .rptKpis .k{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink2); font-weight:700;}
+  .rptKpis .v{font-size:30px; font-weight:700; letter-spacing:-.03em;}
+  .rptKpis .v small{font-size:14px; color:var(--ink2); font-weight:600;}
+  .rptBody{padding:26px 44px 34px; display:grid; grid-template-columns:1.15fr 1fr; gap:34px;}
+  @media (max-width:900px){ .rptBody{grid-template-columns:1fr;} }
+  .rptH{font-size:11px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--ink2);}
+  .rptH.bad{color:var(--bad);}
+  .barList{margin-top:14px; display:flex; flex-direction:column; gap:11px;}
+  .barRow .bt{display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:4px; gap:10px;}
+  .barRow .bt span:last-child{color:var(--ink2); flex:none;}
+  .barRow .bTrack{height:6px; border-radius:3px; background:var(--panel3); overflow:hidden; display:flex;}
+  .findList{margin-top:14px; display:flex; flex-direction:column; gap:10px;}
+  .finding{border:1px solid var(--line); border-left:3px solid var(--bad); border-radius:9px; padding:11px 13px;}
+  .finding .ft{font-size:12.5px; font-weight:650;}
+  .finding .fd{font-size:12px; color:var(--ink2); margin-top:3px;}
+  .finding.warn{border-left-color:var(--warn);}
+  .stepsList{margin-top:12px; display:flex; flex-direction:column; gap:7px; font-size:12.5px; color:var(--ink2);}
+  .stepsList > div{display:flex; gap:9px;}
+  .stepsList .n{color:var(--blue); font-weight:700; flex:none;}
+  .rptSection{padding:0 44px 30px;}
+  .rptFoot{border-top:1px solid var(--line); padding:14px 44px; display:flex; justify-content:space-between;
+    font-size:11px; color:var(--ink2); flex-wrap:wrap; gap:8px;}
+  .rptTable{width:100%; border-collapse:collapse; margin-top:12px; font-size:12.5px;}
+  .rptTable th{text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink2);
+    padding:7px 10px; border-bottom:1px solid var(--line); font-weight:700;}
+  .rptTable td{padding:7px 10px; border-bottom:1px solid var(--line);}
+  .rptTable td:last-child, .rptTable th:last-child{text-align:right;}
+  .liTight{font-size:12.5px; padding:5px 0 5px 11px; border-left:2px solid var(--line2); margin:5px 0;}
+  .liTight.f{border-left-color:var(--bad);}
+  .liTight small{color:var(--ink2);}
+
+  /* ---------------- Modal ---------------- */
+  #modal{display:none; position:fixed; inset:0; background:rgba(7,12,20,.5); z-index:50;
+    align-items:center; justify-content:center; padding:20px;}
+  #modal.open{display:flex;}
+  .modalCard{background:var(--panel); border-radius:14px; padding:20px 22px; width:360px; max-width:100%;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.5); border:1px solid var(--line);}
+  #modalMsg{font-size:13.5px; line-height:1.5; margin-bottom:18px;}
+  .modalRow{display:flex; gap:8px; justify-content:flex-end;}
+
+  /* ---------------- Print ---------------- */
   @media print{
-    header, .legend, .tabs, .toolbar, #flowView, #auditView, #wfView{display:none !important;}
+    header, .rptBar, #flowView, #auditView, #wfView, #modal{display:none !important;}
     body{height:auto; overflow:visible; background:#fff;}
-    #reportView{display:block !important; overflow:visible; padding:0;}
-    .rCard{break-inside:avoid; border-color:#ccc;}
-    button{display:none !important;}
+    #main{display:block; overflow:visible;}
+    #reportView{display:block !important; overflow:visible; background:#fff;}
+    .rptOuter{padding:0;}
+    .rptSheet{width:100%; border:0; box-shadow:none; border-radius:0;}
+    .rptHero{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .rptKpis, .rptBody, .rptSection{break-inside:avoid;}
   }
 </style>
 </head>
 <body>
 <header>
-  <div>
-    <h1>Sales Pipeline — Reputation Pros</h1>
-    <div class="sub">Inbound lead flow · Fillout → HubSpot/GHL → Slack → Stripe · HubSpot audit tool</div>
+  <div class="brand">
+    <div class="brandPlate"><img src="data:image/webp;base64,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" alt="Reputation Pros"></div>
   </div>
-  <div class="tabs">
-    <div class="tab active" id="tabFlow">🗺 Flow chart</div>
-    <div class="tab" id="tabAudit">✅ Audit checklist</div>
-    <div class="tab" id="tabWf">🧾 Workflow audits</div>
-    <div class="tab" id="tabReport">📄 Report</div>
+  <div style="min-width:0">
+    <div class="hTitle">Pipeline Audit</div>
+    <div class="hSub">Fillout → HubSpot → GoHighLevel → Slack → Stripe</div>
   </div>
-  <div class="toolbar">
-    <span id="saveStatus" style="font-size:12px; font-weight:600; cursor:default;"></span>
-    <button id="btnConnect" title="Click a source step, then a target step">🔗 Connect steps</button>
-    <button id="btnAdd">＋ Add step</button>
-    <input type="text" id="edgeLabel" placeholder="Connection label…" style="display:none; font:inherit; font-size:12.5px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; width:170px;">
-    <button id="btnDelEdge" class="danger" style="display:none">Delete connection</button>
-    <button id="btnExport">⬇ Export JSON</button>
-    <button id="btnImport">⬆ Import JSON</button>
-    <input type="file" id="fileImport" accept=".json" style="display:none">
-    <button id="btnReset">↺ Reset</button>
+  <nav class="tabs">
+    <button class="tab active" id="tabFlow">Flow chart</button>
+    <button class="tab" id="tabAudit">Audit checklist</button>
+    <button class="tab" id="tabWf">Workflows</button>
+    <button class="tab" id="tabReport">Report</button>
+  </nav>
+  <div class="hSpacer"></div>
+  <div class="savePill" id="saveStatus"><i></i><span>Listo</span></div>
+  <button class="iconBtn" id="btnTheme" title="Claro / oscuro">☾</button>
+  <div class="menuWrap">
+    <button class="iconBtn" id="btnMenu" title="Más acciones">⋯</button>
+    <div class="menu" id="appMenu">
+      <button id="btnExport">Exportar JSON</button>
+      <button id="btnImport">Importar JSON</button>
+      <input type="file" id="fileImport" accept=".json" style="display:none">
+      <hr>
+      <button id="btnReset" class="danger">Reiniciar todo</button>
+    </div>
   </div>
+  <button class="primaryBtn" id="btnShare">Share link</button>
 </header>
-<div class="legend">
-  <span><span class="dot d-auto"></span>Automated</span>
-  <span><span class="dot d-man"></span>Manual</span>
-  <span><span class="dot d-mix"></span>Mixed</span>
-  <span><span class="dot d-end"></span>Exit / negative close</span>
-  <span style="margin-left:14px">Node dot: <b style="color:var(--ok)">●</b> Works · <b style="color:var(--warn)">●</b> Issues · <b style="color:var(--fail)">●</b> Broken · <b style="color:var(--pending)">●</b> Not verified</span>
-  <span style="margin-left:auto">💡 Checkbox = verified working · ✕ = missing/broken · blank = not audited yet</span>
-</div>
+
 <div id="main">
   <div id="flowView">
     <div id="canvasWrap">
+      <div class="canvasBar">
+        <div class="segGroup">
+          <button id="btnAdd">＋ Add step</button>
+          <span class="segDiv"></span>
+          <button id="btnConnect" title="Click un paso origen, luego el destino">Connect</button>
+        </div>
+        <div class="floatPill" id="flowLegend"></div>
+        <div class="edgeBar" id="edgeBar" style="display:none">
+          <input type="text" id="edgeLabel" placeholder="Etiqueta de la conexión…">
+          <button id="btnDelEdge">Eliminar</button>
+        </div>
+      </div>
       <svg id="svg" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <marker id="arr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M1 1L9 5L1 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
           </marker>
         </defs>
         <g id="vp"></g>
       </svg>
-      <div id="hud">
-        <button id="zIn">＋</button><button id="zOut">－</button><button id="zFit" title="Fit all">⤢</button>
+      <div id="zoomHud">
+        <button id="zOut" title="Alejar">−</button>
+        <span id="zoomLbl" class="num">100%</span>
+        <button id="zIn" title="Acercar">+</button>
+        <span class="segDiv"></span>
+        <button id="zFit" title="Ajustar todo">⤢</button>
       </div>
-      <div id="zoomLbl">100%</div>
       <div id="tip"></div>
     </div>
+
     <aside id="panel">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <h2 id="pTitle">Step</h2>
-        <button id="pClose" style="padding:2px 9px;">✕</button>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <div class="pEyebrow" id="pEyebrow">Step</div>
+        <button class="iconBtn" id="pClose" style="width:26px;height:26px;font-size:12px;">✕</button>
       </div>
-      <span class="badge" id="pBadge"></span><span class="badge" id="pStatusBadge"></span>
-      <label>Step name</label>
-      <input type="text" id="pName">
-      <label>Type</label>
-      <select id="pType">
-        <option value="auto">Automated</option>
-        <option value="man">Manual</option>
-        <option value="mix">Mixed</option>
-        <option value="end">Exit / close</option>
-      </select>
-      <label>Owner / tool</label>
-      <input type="text" id="pOwner">
-      <label>Audit status</label>
-      <select id="pStatus">
-        <option value="pending">⏳ Not verified</option>
-        <option value="ok">✅ Works as expected</option>
-        <option value="issue">⚠️ Works with issues</option>
-        <option value="fail">❌ Broken / missing</option>
-      </select>
-      <label>📥 Information required</label>
-      <textarea id="pNeeds"></textarea>
-      <div class="hint">One item per line — checkboxes live in the Audit tab</div>
-      <label>📤 Information generated</label>
-      <textarea id="pGen"></textarea>
-      <div class="hint">One item per line</div>
-      <div class="row">
-        <button id="pDelete" class="danger" style="flex:1">🗑 Delete step</button>
+      <h2 id="pTitle">Step</h2>
+      <div class="pStats" id="pStats"></div>
+
+      <div class="pLabel">Audit status</div>
+      <div class="segGrid" id="pStatus"></div>
+
+      <div class="pLabel">Owner / tool</div>
+      <input type="text" id="pOwner" class="fld">
+
+      <div id="pToolsWrap" style="display:none">
+        <div class="pLabel">Tools</div>
+        <div class="chips" id="pTools"></div>
       </div>
+
+      <div class="pLabel">Notes</div>
+      <textarea id="pNotes" class="fld" placeholder="Hallazgos de este paso: qué está roto, qué arreglar, quién…"></textarea>
+
+      <button class="primaryBtn" id="pOpenChecklist" style="width:100%; height:36px; margin-top:20px;">Open in checklist</button>
+
+      <details id="pAdvanced">
+        <summary>Editar el paso</summary>
+        <div class="pLabel">Step name</div>
+        <input type="text" id="pName" class="fld">
+        <div class="pLabel">Type</div>
+        <select id="pType" class="fld">
+          <option value="auto">Automated</option>
+          <option value="man">Manual</option>
+          <option value="mix">Mixed</option>
+          <option value="end">Exit / close</option>
+        </select>
+        <div class="pLabel">Information required</div>
+        <textarea id="pNeeds" class="fld"></textarea>
+        <div class="pHint">Un ítem por línea · usa ## para un encabezado de grupo</div>
+        <div class="pLabel">Information generated</div>
+        <textarea id="pGen" class="fld"></textarea>
+        <div class="pHint">Un ítem por línea</div>
+        <button id="pDelete" class="dangerBtn">Eliminar este paso</button>
+      </details>
     </aside>
   </div>
 
   <div id="auditView">
-    <div class="summary" id="summary"></div>
-    <div style="margin-bottom:14px; display:flex; gap:8px;">
-      <button id="btnExpandAll">Expand all</button>
-      <button id="btnCollapseAll">Collapse all</button>
-    </div>
-    <div class="auditSection" id="toolsSection">
-      <div class="auditHead" data-toggle="toolsSection">
-        <span class="chev">▶</span>
-        <h3>🧰 Tools & integrations inventory</h3>
-        <span class="pct" id="toolsProg"></span>
+    <aside class="auditNav">
+      <div class="auditNavTop">
+        <input type="text" id="auditSearch" class="searchBox" placeholder="Buscar checkpoints…">
+        <div class="filterChips" id="auditFilters">
+          <button data-filter="all" class="on">All</button>
+          <button data-filter="fail">Failing</button>
+          <button data-filter="pending">Pending</button>
+        </div>
       </div>
-      <div class="auditBody" id="toolsBody"></div>
+      <div class="auditNavList">
+        <div class="navGroup">Integrations</div>
+        <div id="navTools"></div>
+        <div class="navGroup">Pipeline steps</div>
+        <div id="navSteps"></div>
+      </div>
+    </aside>
+    <div class="auditMain">
+      <div class="auditTop" id="auditTop"></div>
+      <div class="detailWrap" id="auditDetail"></div>
     </div>
-    <div id="stepsAudit"></div>
   </div>
 
   <div id="wfView">
-    <div class="wfBar">
-      <button id="wfAdd">＋ Add workflow</button>
-      <span id="wfSummary" style="display:flex; gap:8px; flex-wrap:wrap;"></span>
-    </div>
-    <div class="wfScroll">
-      <table class="wfTable">
-        <colgroup>
-          <col style="width:40px"><col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:19%">
-          <col style="width:9%"><col style="width:18%"><col style="width:13%"><col style="width:44px">
-        </colgroup>
-        <thead><tr>
-          <th></th><th>Name</th><th>Link</th><th>Workflow type</th><th>Description</th><th>Status</th><th>Next steps</th><th>Omar's Status</th><th></th>
-        </tr></thead>
-        <tbody id="wfBody"></tbody>
-      </table>
-      <div class="wfEmpty" id="wfEmpty" style="display:none">No hay workflows todavía — dale a “＋ Add workflow”.</div>
+    <div class="wfWrap">
+      <div class="wfHead">
+        <div>
+          <h2>Workflow audits</h2>
+          <div class="sub">Workflows de HubSpot revisados uno por uno</div>
+        </div>
+        <div class="wfCounts" id="wfSummary"></div>
+        <button class="primaryBtn" id="wfAdd">＋ Add workflow</button>
+      </div>
+      <div class="wfScroll">
+        <table class="wfTable">
+          <colgroup>
+            <col style="width:40px"><col style="width:22%"><col style="width:11%"><col style="width:26%">
+            <col style="width:9%"><col style="width:20%"><col style="width:13%"><col style="width:44px">
+          </colgroup>
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Type</th><th>Description</th><th>Status</th><th>Next steps</th><th>Omar's status</th><th></th>
+          </tr></thead>
+          <tbody id="wfBody"></tbody>
+        </table>
+        <div class="wfEmpty" id="wfEmpty" style="display:none">Todavía no hay workflows.</div>
+        <button class="wfAddRow" id="wfAddRow">＋ Nueva fila</button>
+      </div>
     </div>
   </div>
 
   <div id="reportView">
-    <div style="display:flex; gap:8px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
-      <button id="btnDownloadMd">⬇ Download report (.md)</button>
-      <button id="btnPrint">🖨 Print / save as PDF</button>
-      <span style="font-size:12px; color:var(--muted)">The report updates live from the audit tab</span>
+    <div class="rptBar">
+      <span class="note">El reporte se genera en vivo desde el audit</span>
+      <span style="flex:1"></span>
+      <button class="ghostBtn" id="btnDownloadMd">Download .md</button>
+      <button class="primaryBtn" id="btnPrint">Print / PDF</button>
     </div>
-    <div id="reportBody"></div>
+    <div class="rptOuter"><div class="rptSheet" id="reportBody"></div></div>
   </div>
 </div>
-<div id="modal" style="display:none; position:fixed; inset:0; background:rgba(20,25,22,.45); z-index:50; align-items:center; justify-content:center;">
-  <div style="background:#fff; border-radius:14px; padding:20px 22px; width:340px; max-width:92vw; box-shadow:0 12px 40px rgba(0,0,0,.2);">
-    <div id="modalMsg" style="font-size:14px; line-height:1.5; margin-bottom:16px;"></div>
-    <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button id="modalCancel">Cancel</button>
-      <button id="modalOk" style="background:#1f2420; color:#fff; border-color:#1f2420;">Confirm</button>
+
+<div id="modal">
+  <div class="modalCard">
+    <div id="modalMsg"></div>
+    <div class="modalRow">
+      <button class="ghostBtn" id="modalCancel">Cancelar</button>
+      <button class="primaryBtn" id="modalOk">Confirmar</button>
     </div>
   </div>
 </div>
 <script>
-const NODE_W = 216, NODE_H = 62;
+const NODE_W = 216, NODE_H = 74;
 const COLORS = {
-  auto:{fill:'var(--auto-fill)', line:'var(--auto-line)', text:'var(--auto-text)', lbl:'Automated'},
-  man :{fill:'var(--man-fill)',  line:'var(--man-line)',  text:'var(--man-text)',  lbl:'Manual'},
-  mix :{fill:'var(--mix-fill)',  line:'var(--mix-line)',  text:'var(--mix-text)',  lbl:'Mixed'},
-  end :{fill:'var(--end-fill)',  line:'var(--end-line)',  text:'var(--end-text)',  lbl:'Exit / close'}
+  auto:{lbl:'Auto',   full:'Automated'},
+  man :{lbl:'Manual', full:'Manual'},
+  mix :{lbl:'Mixed',  full:'Mixed'},
+  end :{lbl:'Exit',   full:'Exit / close'}
 };
 const STATUS = {
-  pending:{c:'var(--pending)', lbl:'Not verified', cls:'s-pending', md:'⏳ Not verified'},
-  ok:{c:'var(--ok)', lbl:'Works', cls:'s-ok', md:'✅ Works'},
-  issue:{c:'var(--warn)', lbl:'Issues', cls:'s-issue', md:'⚠️ Issues'},
-  fail:{c:'var(--fail)', lbl:'Broken', cls:'s-fail', md:'❌ Broken'}
+  pending:{c:'var(--line2)', lbl:'Pending',  short:'Pending', cls:'st-pending', md:'⏳ Not verified'},
+  ok     :{c:'var(--ok)',    lbl:'Works',    short:'Works',   cls:'st-ok',      md:'✅ Works'},
+  issue  :{c:'var(--warn)',  lbl:'Issues',   short:'Issues',  cls:'st-issue',   md:'⚠️ Issues'},
+  fail   :{c:'var(--bad)',   lbl:'Broken',   short:'Broken',  cls:'st-fail',    md:'❌ Broken'}
 };
+const STATUS_ORDER = ['ok','issue','fail','pending'];
 
 /* needs / gen items support group headers: strings starting with "##" render as a group label (not checkable) */
 const DEFAULT_NODES = [
@@ -436,11 +680,11 @@ let workflows = seedWf();
 
 /* ---------- Shared state (Upstash Redis via /api/state) ---------- */
 const saveStatusEl = document.getElementById('saveStatus');
+const saveTextEl = saveStatusEl.querySelector('span');
 function setSaveStatus(s){
-  if (s === 'saving'){ saveStatusEl.textContent = 'Guardando…'; saveStatusEl.style.color = 'var(--muted)'; saveStatusEl.style.cursor = 'default'; }
-  else if (s === 'saved'){ saveStatusEl.textContent = 'Guardado ✓'; saveStatusEl.style.color = 'var(--ok)'; saveStatusEl.style.cursor = 'default'; }
-  else if (s === 'error'){ saveStatusEl.textContent = 'Error al guardar (reintenta)'; saveStatusEl.style.color = 'var(--fail)'; saveStatusEl.style.cursor = 'pointer'; }
-  else { saveStatusEl.textContent = ''; }
+  saveStatusEl.className = 'savePill' + (s === 'saving' ? ' saving' : s === 'saved' ? ' saved' : s === 'error' ? ' err' : '');
+  saveTextEl.textContent = s === 'saving' ? 'Guardando…' : s === 'saved' ? 'Guardado' : s === 'error' ? 'Error al guardar' : 'Listo';
+  saveStatusEl.title = s === 'error' ? 'Click para reintentar ahora' : '';
 }
 const LS_KEY = 'audit-state-local';
 let saveTimer = null, retryTimer = null, dirty = false;
@@ -556,16 +800,22 @@ function edgePath(a, b){
   return {d:`M ${asx} ${asy} C ${asx+dx} ${asy}, ${bsx-dx} ${bsy}, ${bsx + (b.x > a.x ? -6 : 6)} ${bsy}`, mx:(asx+bsx)/2, my:(asy+bsy)/2 - 10};
 }
 
+function renderFlowLegend(){
+  const c = {ok:0, issue:0, fail:0, pending:0};
+  nodes.forEach(n => { const s = stepAudit(n.id).status; if (c[s] !== undefined) c[s]++; });
+  document.getElementById('flowLegend').innerHTML = STATUS_ORDER.map(k =>
+    `<span class="lg"><i style="background:${STATUS[k].c}"></i>${STATUS[k].short} ${c[k]}</span>`).join('');
+}
+
 function render(){
   let h = '';
   edges.forEach((e, i) => {
     const a = byId(e.f), b = byId(e.to);
     if (!a || !b) return;
     const p = edgePath(a, b);
-    const col = COLORS[a.t].line;
     const sel = selectedEdge === i ? ' selected' : '';
     h += `<path class="edge-hit" d="${p.d}" data-edge="${i}"></path>`;
-    h += `<path class="edge-line${sel}" d="${p.d}" stroke="${col}" marker-end="url(#arr)"></path>`;
+    h += `<path class="edge-line${sel}" d="${p.d}" marker-end="url(#arr)"></path>`;
     if (e.l){
       const w = e.l.length * 5.6 + 10;
       h += `<rect class="edge-lbl-bg" x="${p.mx - w/2}" y="${p.my - 9}" width="${w}" height="16" rx="8"></rect>`;
@@ -573,23 +823,28 @@ function render(){
     }
   });
   nodes.forEach(n => {
-    const c = COLORS[n.t];
+    const c = COLORS[n.t] || COLORS.man;
     const st = STATUS[stepAudit(n.id).status];
     const ss = stepStats(n);
-    const cls = ['node-g'];
-    if (selectedNode === n.id) cls.push('selected');
-    if (connSrc === n.id) cls.push('connSrc');
-    const isTarget = drag && drag.type === 'connect' && drag.hover === n.id;
-    h += `<g class="${cls.join(' ')}" data-node="${n.id}">
-      <rect class="body" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="11" fill="${c.fill}" stroke="${isTarget ? '#1f2420' : c.line}" ${isTarget ? 'stroke-width="3.5" stroke-dasharray="7 4"' : ''}></rect>
-      <text x="${n.x + 14}" y="${n.y + 24}" font-size="13.5" font-weight="600" fill="${c.text}">${esc(n.name.length > 26 ? n.name.slice(0,25) + '…' : n.name)}</text>
-      <text x="${n.x + 14}" y="${n.y + 43}" font-size="10.5" fill="${c.text}" opacity=".78">${esc(n.owner.length > 27 ? n.owner.slice(0,26) + '…' : n.owner)} · ${ss.pct}%</text>
-      <circle cx="${n.x + NODE_W - 15}" cy="${n.y + 15}" r="6.5" fill="${st.c}" stroke="#fff" stroke-width="1.5"></circle>
+    const sel = selectedNode === n.id;
+    const isTarget = (drag && drag.type === 'connect' && drag.hover === n.id) || connSrc === n.id;
+    const stroke = isTarget ? 'var(--ink)' : sel ? 'var(--blue)' : 'var(--line)';
+    const barW = Math.max(0, Math.min(100, ss.pct)) / 100 * (NODE_W - 26);
+    h += `<g class="node-g" data-node="${n.id}">
+      ${sel ? `<rect x="${n.x-3}" y="${n.y-3}" width="${NODE_W+6}" height="${NODE_H+6}" rx="14" fill="var(--blueSoft)"></rect>` : ''}
+      <rect class="body" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="11" fill="var(--panel)"
+        stroke="${stroke}" stroke-width="${sel || isTarget ? 1.5 : 1}" ${isTarget ? 'stroke-dasharray="6 4"' : ''}></rect>
+      <text x="${n.x + 13}" y="${n.y + 19}" font-size="9.5" font-weight="700" letter-spacing="0.9" fill="var(--ink2)">${c.lbl.toUpperCase()}</text>
+      <circle cx="${n.x + NODE_W - 15}" cy="${n.y + 15}" r="4" fill="${st.c}"></circle>
+      <text x="${n.x + 13}" y="${n.y + 38}" font-size="13" font-weight="650" fill="var(--ink)">${esc(n.name.length > 27 ? n.name.slice(0,26) + '…' : n.name)}</text>
+      <text x="${n.x + 13}" y="${n.y + 53}" font-size="11" fill="var(--ink2)">${esc(n.owner.length > 30 ? n.owner.slice(0,29) + '…' : n.owner)}</text>
+      <rect x="${n.x + 13}" y="${n.y + 61}" width="${NODE_W - 26}" height="3" rx="1.5" fill="var(--panel3)"></rect>
+      ${barW > 0 ? `<rect x="${n.x + 13}" y="${n.y + 61}" width="${barW}" height="3" rx="1.5" fill="${st.c}"></rect>` : ''}
     </g>`;
   });
   /* temp connection line while dragging from a + handle */
   if (drag && drag.type === 'connect'){
-    h += `<line x1="${drag.sx}" y1="${drag.sy}" x2="${drag.cx}" y2="${drag.cy}" stroke="#1f2420" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arr)" pointer-events="none"></line>`;
+    h += `<line x1="${drag.sx}" y1="${drag.sy}" x2="${drag.cx}" y2="${drag.cy}" stroke="var(--blue)" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arr)" pointer-events="none"></line>`;
   }
   /* + handles on the selected node: drag from any of them to another step to connect */
   const selN = byId(selectedNode);
@@ -602,18 +857,18 @@ function render(){
     ];
     hs.forEach(p => {
       h += `<g class="handle" data-handle="${selN.id}" style="cursor:crosshair">
-        <circle cx="${p.x}" cy="${p.y}" r="11" fill="#1f2420" stroke="#fff" stroke-width="2"></circle>
-        <text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="700" fill="#fff" pointer-events="none">+</text>
+        <circle cx="${p.x}" cy="${p.y}" r="10" fill="var(--blue)" stroke="var(--panel)" stroke-width="2"></circle>
+        <text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="#fff" pointer-events="none">+</text>
       </g>`;
     });
   }
   vp.innerHTML = h;
   vp.setAttribute('transform', `translate(${view.x} ${view.y}) scale(${view.s})`);
   document.getElementById('zoomLbl').textContent = Math.round(view.s * 100) + '%';
-  document.getElementById('btnDelEdge').style.display = selectedEdge !== null ? '' : 'none';
+  document.getElementById('edgeBar').style.display = selectedEdge !== null ? '' : 'none';
   const el = document.getElementById('edgeLabel');
-  el.style.display = selectedEdge !== null ? '' : 'none';
   if (selectedEdge !== null && document.activeElement !== el) el.value = edges[selectedEdge] ? edges[selectedEdge].l : '';
+  renderFlowLegend();
 }
 
 function toWorld(cx, cy){
@@ -727,9 +982,12 @@ function fitAll(){
   const minY = Math.min(...nodes.map(n => n.y)) - 40, maxY = Math.max(...nodes.map(n => n.y + NODE_H)) + 40;
   const r = svg.getBoundingClientRect();
   if (r.width === 0){ render(); return; } /* pestaña oculta: no se puede medir, pero igual dibujamos */
-  view.s = Math.min(r.width / (maxX - minX), r.height / (maxY - minY), 1.4);
-  view.x = (r.width - (maxX - minX) * view.s) / 2 - minX * view.s;
-  view.y = (r.height - (maxY - minY) * view.s) / 2 - minY * view.s;
+  /* dejamos aire arriba y abajo para que la barra flotante y el zoom no tapen nodos */
+  const padT = 62, padB = 56;
+  const availW = r.width, availH = Math.max(120, r.height - padT - padB);
+  view.s = Math.min(availW / (maxX - minX), availH / (maxY - minY), 1.4);
+  view.x = (availW - (maxX - minX) * view.s) / 2 - minX * view.s;
+  view.y = padT + (availH - (maxY - minY) * view.s) / 2 - minY * view.s;
   render();
 }
 
@@ -782,9 +1040,9 @@ document.getElementById('fileImport').onchange = ev => {
 function askConfirm(msg, cb){
   const m = document.getElementById('modal');
   document.getElementById('modalMsg').textContent = msg;
-  m.style.display = 'flex';
+  m.classList.add('open');
   const ok = document.getElementById('modalOk'), cancel = document.getElementById('modalCancel');
-  const close = () => { m.style.display = 'none'; ok.onclick = null; cancel.onclick = null; };
+  const close = () => { m.classList.remove('open'); ok.onclick = null; cancel.onclick = null; };
   ok.onclick = () => { close(); cb(); };
   cancel.onclick = close;
 }
@@ -824,16 +1082,26 @@ tabs.report.onclick = () => showTab('report');
 const panel = document.getElementById('panel');
 function openPanel(id){ selectedNode = id; fillPanel(byId(id)); panel.classList.add('open'); render(); }
 function fillPanel(n){
-  const c = COLORS[n.t], sa = stepAudit(n.id), st = STATUS[sa.status];
+  const c = COLORS[n.t] || COLORS.man, sa = stepAudit(n.id), ss = stepStats(n);
+  document.getElementById('pEyebrow').textContent = 'Step · ' + c.full.toUpperCase();
   document.getElementById('pTitle').textContent = n.name;
-  const b = document.getElementById('pBadge');
-  b.textContent = c.lbl; b.style.background = c.fill; b.style.color = c.text; b.style.border = '1px solid ' + c.line;
-  const sb = document.getElementById('pStatusBadge');
-  sb.textContent = st.lbl; sb.style.background = '#fff'; sb.style.color = st.c; sb.style.border = '1.5px solid ' + st.c;
+  document.getElementById('pStats').innerHTML = `
+    <div class="pStat"><div class="k">Audited</div><div class="v num">${ss.pct}<small>%</small></div></div>
+    <div class="pStat ok"><div class="k">Confirmed</div><div class="v num">${ss.pass}</div></div>
+    <div class="pStat ${ss.fail ? 'bad' : ''}"><div class="k">Failing</div><div class="v num">${ss.fail}</div></div>`;
+  document.getElementById('pStatus').innerHTML = STATUS_ORDER.map(k =>
+    `<button data-st="${k}" class="${sa.status === k ? 'on ' + STATUS[k].cls : ''}">${STATUS[k].lbl}</button>`).join('');
+  const tw = document.getElementById('pToolsWrap');
+  if (n.tools && n.tools.length){
+    tw.style.display = '';
+    document.getElementById('pTools').innerHTML = n.tools.map(t => `<span class="chip">${esc(t)}</span>`).join('');
+  } else tw.style.display = 'none';
+  const notes = document.getElementById('pNotes');
+  if (document.activeElement !== notes) notes.value = sa.notes || '';
   document.getElementById('pName').value = n.name;
   document.getElementById('pType').value = n.t;
-  document.getElementById('pOwner').value = n.owner;
-  document.getElementById('pStatus').value = sa.status;
+  const ow = document.getElementById('pOwner');
+  if (document.activeElement !== ow) ow.value = n.owner;
   document.getElementById('pNeeds').value = n.needs.join('\n');
   document.getElementById('pGen').value = n.gen.join('\n');
 }
@@ -842,7 +1110,18 @@ document.getElementById('pClose').onclick = () => { closePanel(); render(); };
 document.getElementById('pName').oninput = e => { const n = byId(selectedNode); if(n){ n.name = e.target.value; document.getElementById('pTitle').textContent = n.name; render(); saveState(); } };
 document.getElementById('pType').onchange = e => { const n = byId(selectedNode); if(n){ n.t = e.target.value; fillPanel(n); render(); saveState(); } };
 document.getElementById('pOwner').oninput = e => { const n = byId(selectedNode); if(n){ n.owner = e.target.value; render(); saveState(); } };
-document.getElementById('pStatus').onchange = e => { const n = byId(selectedNode); if(n){ stepAudit(n.id).status = e.target.value; fillPanel(n); render(); saveState(); } };
+document.getElementById('pNotes').oninput = e => { const n = byId(selectedNode); if(n){ stepAudit(n.id).notes = e.target.value; saveState(); } };
+document.getElementById('pStatus').onclick = e => {
+  const b = e.target.closest('[data-st]'); const n = byId(selectedNode);
+  if (!b || !n) return;
+  stepAudit(n.id).status = b.dataset.st;
+  fillPanel(n); render(); saveState();
+};
+document.getElementById('pOpenChecklist').onclick = () => {
+  if (!selectedNode) return;
+  auditSel = {kind:'step', id:selectedNode};
+  showTab('audit');
+};
 document.getElementById('pNeeds').oninput = e => { const n = byId(selectedNode); if(n){ n.needs = e.target.value.split('\n').filter(x => x.trim()); saveState(); } };
 document.getElementById('pGen').oninput = e => { const n = byId(selectedNode); if(n){ n.gen = e.target.value.split('\n').filter(x => x.trim()); saveState(); } };
 document.getElementById('pDelete').onclick = () => {
@@ -855,8 +1134,11 @@ document.getElementById('pDelete').onclick = () => {
   });
 };
 
-/* ---------- Audit tab ---------- */
-const openSections = new Set(['toolsSection']);
+/* ---------- Audit tab (master–detail) ---------- */
+let auditSel = {kind:'tools', id:null};   /* qué se muestra en el detalle */
+let auditFilter = 'all';                  /* all | fail | pending */
+let auditQuery = '';
+let cpFocus = null;                       /* checkpoint enfocado para atajos de teclado */
 
 function globalStats(){
   let total = 0, pass = 0, fail = 0;
@@ -865,133 +1147,277 @@ function globalStats(){
   DEFAULT_TOOLS.forEach(t => { const s = toolStats(t); tTotal += s.total; tPass += s.pass; tFail += s.fail; });
   const allTotal = total + tTotal, allPass = pass + tPass;
   return {total, pass, fail, pending: total - pass - fail,
-          tTotal, tPass, tFail,
+          tTotal, tPass, tFail, tPending: tTotal - tPass - tFail,
+          allTotal, allPass, allFail: fail + tFail, allPending: (total - pass - fail) + (tTotal - tPass - tFail),
           pct: allTotal ? Math.round(allPass / allTotal * 100) : 0,
           itemPct: total ? Math.round(pass / total * 100) : 0};
 }
 
-function renderAudit(){
-  const g = globalStats();
-  let ok = 0, issue = 0, failS = 0;
-  nodes.forEach(n => { const s = stepAudit(n.id).status; if (s === 'ok') ok++; else if (s === 'issue') issue++; else if (s === 'fail') failS++; });
-  document.getElementById('summary').innerHTML = `
-    <div class="sumCard" style="min-width:180px"><div class="num">${g.pct}%</div><div class="lbl">Overall audit completion</div>
-      <div class="progressBar" style="width:150px"><i style="width:${g.pct}%"></i></div></div>
-    <div class="sumCard"><div class="num">${g.pass}<span style="font-size:13px; color:var(--muted)">/${g.total}</span></div><div class="lbl">Data points confirmed</div></div>
-    <div class="sumCard"><div class="num" style="color:var(--fail)">${g.fail}</div><div class="lbl">Data points failing</div></div>
-    <div class="sumCard"><div class="num" style="color:var(--pending)">${g.pending}</div><div class="lbl">Not audited yet</div></div>
-    <div class="sumCard"><div class="num" style="color:var(--ok)">${ok}</div><div class="lbl">Steps working</div></div>
-    <div class="sumCard"><div class="num" style="color:var(--warn)">${issue}</div><div class="lbl">Steps w/ issues</div></div>
-    <div class="sumCard"><div class="num" style="color:var(--fail)">${failS}</div><div class="lbl">Steps broken</div></div>`;
+/* color del punto de un paso en la navegación */
+function stepDot(n){
+  const st = stepAudit(n.id).status;
+  if (st !== 'pending') return STATUS[st].c;
+  const ss = stepStats(n);
+  return ss.fail ? 'var(--bad)' : ss.pass ? 'var(--ok)' : 'var(--line2)';
+}
+function matchQuery(txt){ return !auditQuery || String(txt).toLowerCase().includes(auditQuery); }
 
-  /* tools */
-  const tb = DEFAULT_TOOLS.map((t, ti) => {
-    const ta = toolAudit(t.name), ts = toolStats(t);
-    const pctColor = ts.fail ? 'var(--fail)' : ts.pct === 100 ? 'var(--ok)' : ts.pct > 0 ? '#854F0B' : 'var(--muted)';
-    const items = t.items.map((it, ii) => {
-      const v = ta.checks[ii];
-      return `<div class="chk ${v === true ? 'checked' : ''}">
-        <input type="checkbox" data-tool="${ti}" data-titem="${ii}" ${v === true ? 'checked' : ''} title="Exists / works">
-        <span class="no ${v === false ? 'on' : ''}" data-toolfail="${ti}" data-titem="${ii}" title="Mark as missing/broken">✕</span>
-        <span>${esc(it)}</span>
-      </div>`;
-    }).join('');
-    return `<details ${ts.pass + ts.fail > 0 && ts.pending > 0 ? 'open' : ''} style="border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-top:10px; background:#fafbf9;">
-      <summary style="cursor:pointer; display:flex; align-items:center; gap:10px; flex-wrap:wrap; list-style:none;">
-        <b style="font-size:13px; flex:1; min-width:200px;">${esc(t.name)}</b>
-        <span class="progressBar" style="width:110px; margin:0;"><i style="width:${ts.pct}%; background:${ts.fail ? 'var(--warn)' : 'var(--ok)'}"></i></span>
-        <span class="pct" style="color:${pctColor}">${ts.pct}% · ${ts.pass}/${ts.total}${ts.fail ? ` · ${ts.fail} ✕` : ''}</span>
-      </summary>
-      <div style="margin-top:8px;">${items}
-      <input type="text" placeholder="Audit notes for this tool…" data-toolnote="${ti}" value="${esc(ta.notes)}" style="display:block; width:100%; margin-top:8px; font-size:12px; padding:5px 9px; border:1px solid var(--border); border-radius:6px;"></div>
-    </details>`;
-  }).join('');
-  document.getElementById('toolsBody').innerHTML = `<div style="padding-top:4px; padding-bottom:4px;">${tb}</div>`;
-  document.getElementById('toolsProg').textContent = `${g.tTotal ? Math.round(g.tPass/g.tTotal*100) : 0}% · ${g.tPass}/${g.tTotal} confirmed${g.tFail ? ` · ${g.tFail} failing` : ''}`;
-  document.getElementById('toolsSection').classList.toggle('open', openSections.has('toolsSection'));
-
-  /* steps */
-  document.getElementById('stepsAudit').innerHTML = nodes.map(n => {
-    const c = COLORS[n.t], sa = stepAudit(n.id), st = STATUS[sa.status], ss = stepStats(n);
-    const renderList = arr => arr.map((t, i) => {
-      const key = (arr === n.needs ? 'n' : 'g') + i;
-      if (isGroup(t)) return `<div class="grpLbl">${esc(t.replace(/^##\s*/, ''))}</div>`;
-      const v = sa.checks[key];
-      return `<div class="chk ${v === true ? 'checked' : ''}">
-        <input type="checkbox" data-step="${n.id}" data-key="${key}" ${v === true ? 'checked' : ''} title="Exists / works">
-        <span class="no ${v === false ? 'on' : ''}" data-failstep="${n.id}" data-key="${key}" title="Mark as missing/broken">✕</span>
-        <span>${esc(t)}</span>
-      </div>`;
-    }).join('');
-    return `<div class="auditSection ${openSections.has(n.id) ? 'open' : ''}" id="sec-${n.id}">
-      <div class="auditHead" data-toggle="${n.id}">
-        <span class="chev">▶</span>
-        <h3>${esc(n.name)}</h3>
-        <span class="typeBadge" style="background:${c.fill}; color:${c.text}; border-color:${c.line}">${c.lbl}</span>
-        <span class="pct">${ss.pass}/${ss.total} · ${ss.pct}%${ss.fail ? ` · <b style="color:var(--fail)">${ss.fail} ✕</b>` : ''}</span>
-        ${n.tools && n.tools.length ? n.tools.map(t => `<span class="toolTag">${esc(t)}</span>`).join('') : ''}
-        <select class="statusSel ${st.cls}" data-status="${n.id}">
-          <option value="pending" ${sa.status==='pending'?'selected':''}>⏳ Not verified</option>
-          <option value="ok" ${sa.status==='ok'?'selected':''}>✅ Works</option>
-          <option value="issue" ${sa.status==='issue'?'selected':''}>⚠️ Issues</option>
-          <option value="fail" ${sa.status==='fail'?'selected':''}>❌ Broken</option>
-        </select>
-      </div>
-      <div class="auditBody">
-        <div class="ownerLine">Owner / tool: <b>${esc(n.owner)}</b></div>
-        <div class="colGrid">
-          <div><h4>📥 Information required — check if it exists</h4>${renderList(n.needs) || '<small style="color:var(--muted)">—</small>'}</div>
-          <div><h4>📤 Information generated — check if it works</h4>${renderList(n.gen) || '<small style="color:var(--muted)">—</small>'}</div>
-        </div>
-        <textarea class="notes" placeholder="Audit findings for this step (what's broken, what to fix in HubSpot/GHL, owners)…" data-notes="${n.id}">${esc(sa.notes)}</textarea>
-      </div>
-    </div>`;
-  }).join('');
+/* ¿este checkpoint pasa el filtro activo? */
+function passFilter(v){
+  if (auditFilter === 'fail') return v === false;
+  if (auditFilter === 'pending') return v !== true && v !== false;
+  return true;
 }
 
-document.getElementById('btnExpandAll').onclick = () => { openSections.add('toolsSection'); nodes.forEach(n => openSections.add(n.id)); renderAudit(); };
-document.getElementById('btnCollapseAll').onclick = () => { openSections.clear(); renderAudit(); };
+function renderAudit(){
+  const g = globalStats();
 
-document.getElementById('auditView').addEventListener('click', ev => {
-  const toggle = ev.target.closest('[data-toggle]');
-  if (toggle && !ev.target.closest('select, input, textarea, .no')){
-    const id = toggle.dataset.toggle;
-    openSections.has(id) ? openSections.delete(id) : openSections.add(id);
-    document.getElementById(id === 'toolsSection' ? 'toolsSection' : 'sec-' + id).classList.toggle('open');
+  /* --- barra superior --- */
+  document.getElementById('auditTop').innerHTML = `
+    <div style="display:flex; align-items:baseline; gap:10px;">
+      <span class="bigPct num">${g.pct}%</span>
+      <span class="sub">auditado · ${g.allPass} de ${g.allTotal} checkpoints</span>
+    </div>
+    <span class="trackWide">
+      <i style="width:${g.allTotal ? g.allPass/g.allTotal*100 : 0}%; background:var(--ok); height:100%; display:block"></i>
+      <i style="width:${g.allTotal ? g.allFail/g.allTotal*100 : 0}%; background:var(--bad); height:100%; display:block"></i>
+    </span>
+    <div class="kpis">
+      <div class="kpi ok"><div class="k">Confirmed</div><div class="v num">${g.allPass}</div></div>
+      <div class="kpi ${g.allFail ? 'bad' : ''}"><div class="k">Failing</div><div class="v num">${g.allFail}</div></div>
+      <div class="kpi"><div class="k">Pending</div><div class="v num">${g.allPending}</div></div>
+    </div>`;
+
+  /* --- navegación izquierda --- */
+  const tSel = auditSel.kind === 'tools' ? ' on' : '';
+  const tDot = g.tFail ? 'var(--bad)' : g.tPass === g.tTotal && g.tTotal ? 'var(--ok)' : g.tPass ? 'var(--warn)' : 'var(--line2)';
+  document.getElementById('navTools').innerHTML =
+    `<button class="navItem${tSel}" data-nav="tools"><i style="background:${tDot}"></i>
+      <span class="nm">${DEFAULT_TOOLS.length} tools</span><span class="ct num">${g.tPass}/${g.tTotal}</span></button>`;
+
+  document.getElementById('navSteps').innerHTML = nodes.map(n => {
+    const ss = stepStats(n);
+    const on = auditSel.kind === 'step' && auditSel.id === n.id ? ' on' : '';
+    return `<button class="navItem${on}" data-nav="step" data-id="${n.id}"><i style="background:${stepDot(n)}"></i>
+      <span class="nm">${esc(n.name)}</span><span class="ct num">${ss.pass}/${ss.total}</span></button>`;
+  }).join('');
+
+  document.getElementById('auditSearch').placeholder = `Buscar en ${g.allTotal} checkpoints…`;
+
+  /* --- detalle --- */
+  document.getElementById('auditDetail').innerHTML =
+    auditSel.kind === 'tools' ? renderToolsDetail() : renderStepDetail();
+}
+
+/* control de tres estados: ✓ / · / ✕ */
+function triHtml(dataAttrs, v){
+  return `<span class="tri" ${dataAttrs}>
+    <button data-set="yes" class="${v === true ? 'on-y' : ''}" title="Funciona (1)">✓</button>
+    <button data-set="mid" class="${v !== true && v !== false ? 'on-m' : ''}" title="Sin auditar (2)">·</button>
+    <button data-set="no"  class="${v === false ? 'on-n' : ''}" title="Falta o está roto (3)">✕</button>
+  </span>`;
+}
+function cpRow(dataAttrs, v, txt, key){
+  const cls = v === false ? ' isFail' : v === true ? ' isOk' : '';
+  const foc = cpFocus === key ? ' focus' : '';
+  return `<div class="cp${cls}${foc}" data-cp="${key}" tabindex="0">
+    ${triHtml(dataAttrs, v)}<span class="lbl">${esc(txt)}</span><span class="kbd">1 · 2 · 3</span></div>`;
+}
+
+function renderStepDetail(){
+  const n = byId(auditSel.id);
+  if (!n) return `<div class="emptyNote">Ese paso ya no existe. Elige otro en la lista.</div>`;
+  const sa = stepAudit(n.id), ss = stepStats(n), c = COLORS[n.t] || COLORS.man;
+
+  const renderList = (arr, prefix) => {
+    let out = '', shown = 0;
+    arr.forEach((t, i) => {
+      const key = prefix + i;
+      if (isGroup(t)){ out += `<div class="grpLbl" data-grp="1">${esc(t.replace(/^##\s*/, ''))}</div>`; return; }
+      const v = sa.checks[key];
+      if (!passFilter(v) || !matchQuery(t)) return;
+      shown++;
+      out += cpRow(`data-step="${n.id}" data-key="${key}"`, v, t, n.id + ':' + key);
+    });
+    return shown ? out : `<div class="emptyNote">Nada aquí con el filtro actual.</div>`;
+  };
+
+  const failing = checkables(n).filter(it => sa.checks[it.key] === false);
+  const needN = n.needs.filter(t => !isGroup(t)).length;
+  const genN = n.gen.filter(t => !isGroup(t)).length;
+  const needPass = n.needs.filter((t,i) => !isGroup(t) && sa.checks['n'+i] === true).length;
+  const genPass = n.gen.filter((t,i) => !isGroup(t) && sa.checks['g'+i] === true).length;
+
+  return `
+    <div class="detailHead">
+      <div style="min-width:0">
+        <h2>${esc(n.name)}</h2>
+        <div class="meta">${c.full} · ${esc(n.owner)}${n.tools && n.tools.length ? ' · ' + n.tools.map(esc).join(', ') : ''}</div>
+      </div>
+      <div class="segRow" data-stepstatus="${n.id}">
+        ${STATUS_ORDER.map(k => `<button data-st="${k}" class="${sa.status === k ? 'on ' + STATUS[k].cls : ''}">${STATUS[k].lbl}</button>`).join('')}
+      </div>
+    </div>
+    ${failing.length ? `<div class="alertBar">
+      <b>${failing.length} failing</b>
+      <span class="txt">${failing.slice(0,3).map(f => esc(f.txt)).join(' · ')}${failing.length > 3 ? ' …' : ''}</span>
+      <button data-jumpfail="1">Ir al primero ↓</button>
+    </div>` : ''}
+    <div class="cols">
+      <div class="colCard">
+        <div class="ch"><h4>Información requerida</h4><span class="ct num">${needPass} / ${needN}</span></div>
+        ${renderList(n.needs, 'n')}
+      </div>
+      <div class="colCard">
+        <div class="ch"><h4>Información generada</h4><span class="ct num">${genPass} / ${genN}</span></div>
+        ${renderList(n.gen, 'g')}
+      </div>
+    </div>
+    <div class="notesArea">
+      <div class="pLabel" style="margin-top:0">Notas de auditoría</div>
+      <textarea class="fld" data-notes="${n.id}" placeholder="Qué está roto, qué arreglar en HubSpot/GHL, responsables…">${esc(sa.notes)}</textarea>
+    </div>
+    <div class="shortcuts">Atajos: <kbd>1</kbd> funciona · <kbd>2</kbd> sin auditar · <kbd>3</kbd> falla · <kbd>↑</kbd><kbd>↓</kbd> moverse</div>`;
+}
+
+function renderToolsDetail(){
+  const g = globalStats();
+  const cards = DEFAULT_TOOLS.map((t, ti) => {
+    const ta = toolAudit(t.name), ts = toolStats(t);
+    let rows = '', shown = 0;
+    t.items.forEach((it, ii) => {
+      const v = ta.checks[ii];
+      if (!passFilter(v) || !(matchQuery(it) || matchQuery(t.name))) return;
+      shown++;
+      rows += cpRow(`data-tool="${ti}" data-titem="${ii}"`, v, it, 'tool' + ti + ':' + ii);
+    });
+    if (!shown) return '';
+    return `<div class="colCard" style="margin-bottom:14px">
+      <div class="ch"><h4>${esc(t.name)}</h4><span class="ct num">${ts.pass} / ${ts.total}${ts.fail ? ` · ${ts.fail} ✕` : ''}</span></div>
+      ${rows}
+      <input type="text" class="fld" style="margin-top:12px" placeholder="Notas de esta herramienta…"
+        data-toolnote="${ti}" value="${esc(ta.notes)}">
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="detailHead">
+      <div>
+        <h2>Tools & integrations</h2>
+        <div class="meta">${DEFAULT_TOOLS.length} herramientas · ${g.tPass} de ${g.tTotal} confirmados${g.tFail ? ` · ${g.tFail} fallando` : ''}</div>
+      </div>
+    </div>
+    ${cards || '<div class="emptyNote">Nada aquí con el filtro actual.</div>'}
+    <div class="shortcuts">Atajos: <kbd>1</kbd> funciona · <kbd>2</kbd> sin auditar · <kbd>3</kbd> falla · <kbd>↑</kbd><kbd>↓</kbd> moverse</div>`;
+}
+
+/* ---- interacción del audit ---- */
+const auditViewEl = document.getElementById('auditView');
+
+auditViewEl.addEventListener('click', ev => {
+  const nav = ev.target.closest('[data-nav]');
+  if (nav){
+    auditSel = nav.dataset.nav === 'tools' ? {kind:'tools', id:null} : {kind:'step', id:nav.dataset.id};
+    cpFocus = null; renderAudit();
+    document.querySelector('.auditMain').scrollTop = 0;
     return;
   }
-  const failStep = ev.target.closest('[data-failstep]');
-  if (failStep){
-    const sa = stepAudit(failStep.dataset.failstep), k = failStep.dataset.key;
-    sa.checks[k] = sa.checks[k] === false ? undefined : false;
-    renderAudit(); render(); saveState();
+  const stBtn = ev.target.closest('[data-stepstatus] [data-st]');
+  if (stBtn){
+    const id = stBtn.closest('[data-stepstatus]').dataset.stepstatus;
+    stepAudit(id).status = stBtn.dataset.st;
+    renderAudit(); render(); if (selectedNode === id) fillPanel(byId(id));
+    saveState();
     return;
   }
-  const toolFail = ev.target.closest('[data-toolfail]');
-  if (toolFail){
-    const ta = toolAudit(DEFAULT_TOOLS[+toolFail.dataset.toolfail].name);
-    const k = +toolFail.dataset.titem;
-    ta.checks[k] = ta.checks[k] === false ? undefined : false;
-    renderAudit(); saveState();
+  const jump = ev.target.closest('[data-jumpfail]');
+  if (jump){
+    const first = auditViewEl.querySelector('.cp.isFail');
+    if (first){ first.scrollIntoView({block:'center', behavior:'smooth'}); focusCp(first); }
+    return;
+  }
+  const setBtn = ev.target.closest('.tri [data-set]');
+  if (setBtn){
+    const tri = setBtn.closest('.tri');
+    const val = setBtn.dataset.set === 'yes' ? true : setBtn.dataset.set === 'no' ? false : undefined;
+    applyCheck(tri, val);
+    const row = setBtn.closest('.cp');
+    if (row) cpFocus = row.dataset.cp;
+    renderAudit();
+    restoreFocus();
+    return;
+  }
+  const row = ev.target.closest('.cp');
+  if (row) focusCp(row);
+});
+
+function applyCheck(tri, val){
+  if (tri.dataset.step !== undefined){
+    const sa = stepAudit(tri.dataset.step);
+    sa.checks[tri.dataset.key] = val;
+    if (val === undefined) delete sa.checks[tri.dataset.key];
+    render();
+  } else if (tri.dataset.tool !== undefined){
+    const ta = toolAudit(DEFAULT_TOOLS[+tri.dataset.tool].name);
+    ta.checks[+tri.dataset.titem] = val;
+    if (val === undefined) delete ta.checks[+tri.dataset.titem];
+  }
+  saveState();
+}
+function focusCp(row){
+  cpFocus = row.dataset.cp;
+  auditViewEl.querySelectorAll('.cp.focus').forEach(r => r.classList.remove('focus'));
+  row.classList.add('focus');
+  row.focus({preventScroll:true});
+}
+function restoreFocus(){
+  if (!cpFocus) return;
+  const row = auditViewEl.querySelector(`[data-cp="${CSS.escape(cpFocus)}"]`);
+  if (row){ row.classList.add('focus'); row.focus({preventScroll:true}); }
+}
+
+auditViewEl.addEventListener('keydown', ev => {
+  if (ev.target.matches('input, textarea')) return;
+  const rows = [...auditViewEl.querySelectorAll('.cp')];
+  if (!rows.length) return;
+  let idx = rows.findIndex(r => r.dataset.cp === cpFocus);
+  if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
+    ev.preventDefault();
+    idx = ev.key === 'ArrowDown' ? Math.min(rows.length - 1, idx + 1) : Math.max(0, idx - 1);
+    if (idx < 0) idx = 0;
+    focusCp(rows[idx]);
+    rows[idx].scrollIntoView({block:'nearest'});
+  } else if (['1','2','3'].includes(ev.key) && idx >= 0){
+    ev.preventDefault();
+    const val = ev.key === '1' ? true : ev.key === '3' ? false : undefined;
+    applyCheck(rows[idx].querySelector('.tri'), val);
+    renderAudit(); restoreFocus();
   }
 });
-document.getElementById('auditView').addEventListener('change', ev => {
-  if (ev.target.matches('[data-step]')){
-    const sa = stepAudit(ev.target.dataset.step);
-    sa.checks[ev.target.dataset.key] = ev.target.checked ? true : undefined;
-    renderAudit(); render(); saveState();
-  } else if (ev.target.matches('[data-status]')){
-    stepAudit(ev.target.dataset.status).status = ev.target.value;
-    renderAudit(); render(); saveState();
-  } else if (ev.target.matches('[data-tool]')){
-    const ta = toolAudit(DEFAULT_TOOLS[+ev.target.dataset.tool].name);
-    ta.checks[+ev.target.dataset.titem] = ev.target.checked ? true : undefined;
-    renderAudit(); saveState();
+
+auditViewEl.addEventListener('input', ev => {
+  if (ev.target.matches('[data-notes]')){
+    stepAudit(ev.target.dataset.notes).notes = ev.target.value;
+    if (selectedNode === ev.target.dataset.notes) document.getElementById('pNotes').value = ev.target.value;
+    saveState();
+  } else if (ev.target.matches('[data-toolnote]')){
+    toolAudit(DEFAULT_TOOLS[+ev.target.dataset.toolnote].name).notes = ev.target.value;
+    saveState();
+  } else if (ev.target.id === 'auditSearch'){
+    auditQuery = ev.target.value.trim().toLowerCase();
+    const keep = ev.target.value;
+    renderAudit();
+    const s = document.getElementById('auditSearch');
+    s.value = keep; s.focus();
   }
 });
-document.getElementById('auditView').addEventListener('input', ev => {
-  if (ev.target.matches('[data-notes]')){ stepAudit(ev.target.dataset.notes).notes = ev.target.value; saveState(); }
-  if (ev.target.matches('[data-toolnote]')){ toolAudit(DEFAULT_TOOLS[+ev.target.dataset.toolnote].name).notes = ev.target.value; saveState(); }
+
+document.getElementById('auditFilters').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-filter]');
+  if (!b) return;
+  auditFilter = b.dataset.filter;
+  document.querySelectorAll('#auditFilters button').forEach(x => x.classList.toggle('on', x === b));
+  renderAudit();
 });
 
 /* ---------- Workflow audits tab ---------- */
@@ -1010,30 +1436,30 @@ function renderWfSummary(){
   const c = {on:0, off:0, checking:0, wip:0, pass:0, fix:0};
   workflows.forEach(w => { if (c[w.status] !== undefined) c[w.status]++; if (c[w.omar] !== undefined) c[w.omar]++; });
   document.getElementById('wfSummary').innerHTML = `
-    <span class="wfChip"><b>${workflows.length}</b> workflows</span>
-    <span class="wfChip" style="border-color:var(--ok)"><b style="color:var(--ok)">${c.on}</b> On · <b>${c.off}</b> Off</span>
-    <span class="wfChip"><b>${c.checking}</b> Checking</span>
-    <span class="wfChip"><b style="color:#854F0B">${c.wip}</b> WIP</span>
-    <span class="wfChip"><b style="color:var(--ok)">${c.pass}</b> Pass</span>
-    <span class="wfChip"><b style="color:var(--fail)">${c.fix}</b> Needs fix</span>`;
+    <span style="color:var(--ok)"><b>${c.pass}</b> Pass</span>
+    <span style="color:var(--warn)"><b>${c.wip}</b> WIP</span>
+    <span style="color:var(--bad)"><b>${c.fix}</b> Needs fix</span>
+    <span style="color:var(--ink2)"><b>${c.checking}</b> Checking · ${c.on} On / ${c.off} Off</span>`;
 }
 
 function renderWf(){
   renderWfSummary();
   const opts = (map, val) => Object.keys(map).map(k => `<option value="${k}" ${val === k ? 'selected' : ''}>${map[k]}</option>`).join('');
   document.getElementById('wfBody').innerHTML = workflows.map((w, i) => `
-    <tr>
-      <td class="wfNum">${i + 1}</td>
-      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="name" placeholder="Nombre del workflow">${esc(w.name || '')}</textarea></td>
-      <td><div class="wfLinkWrap">
-        <textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="link" placeholder="https://…">${esc(w.link || '')}</textarea>
-        <a class="wfOpen" data-wfopen="${w.id}" href="${esc(safeUrl(w.link) || '#')}" target="_blank" rel="noopener noreferrer"
-           title="Abrir el workflow en otra pestaña" style="${safeUrl(w.link) ? '' : 'display:none'}">↗</a>
-      </div></td>
-      <td><select class="wfSel wfType" data-wfsel="${w.id}" data-f="type" data-nocolor="1">${opts(WF_TYPE, w.type || '')}</select></td>
+    <tr class="${w.omar === 'fix' ? 'rowFix' : ''}">
+      <td class="wfNum num">${i + 1}</td>
+      <td>
+        <textarea class="wfCell wfName" rows="1" data-wf="${w.id}" data-f="name" placeholder="Nombre del workflow">${esc(w.name || '')}</textarea>
+        <div class="wfLinkWrap">
+          <textarea class="wfCell wfLink" rows="1" data-wf="${w.id}" data-f="link" placeholder="https://…">${esc(w.link || '')}</textarea>
+          <a class="wfOpen" data-wfopen="${w.id}" href="${esc(safeUrl(w.link) || '#')}" target="_blank" rel="noopener noreferrer"
+             title="Abrir el workflow en otra pestaña" style="${safeUrl(w.link) ? '' : 'display:none'}">↗</a>
+        </div>
+      </td>
+      <td><select class="wfSel wfType${w.type ? '' : ' empty'}" data-wfsel="${w.id}" data-f="type" data-nocolor="1">${opts(WF_TYPE, w.type || '')}</select></td>
       <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="desc" placeholder="Qué hace / qué dispara">${esc(w.desc || '')}</textarea></td>
-      <td><select class="wfSel wf-${w.status}" data-wfsel="${w.id}" data-f="status">${opts({on:'🟢 On', off:'⚪️ Off'}, w.status)}</select></td>
-      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="next" placeholder="Qué sigue / qué arreglar">${esc(w.next || '')}</textarea></td>
+      <td><select class="wfSel wf-${w.status}" data-wfsel="${w.id}" data-f="status">${opts({on:'On', off:'Off'}, w.status)}</select></td>
+      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="next" placeholder="—">${esc(w.next || '')}</textarea></td>
       <td><select class="wfSel wf-${w.omar}" data-wfsel="${w.id}" data-f="omar">${opts(WF_OMAR, w.omar)}</select></td>
       <td><button class="wfDel" data-wfdel="${w.id}" title="Eliminar fila">✕</button></td>
     </tr>`).join('');
@@ -1041,13 +1467,15 @@ function renderWf(){
   document.querySelectorAll('#wfBody .wfCell').forEach(autoGrow);
 }
 
-document.getElementById('wfAdd').onclick = () => {
+function addWfRow(){
   workflows.push(blankWf());
   renderWf(); saveState();
   const rows = document.querySelectorAll('#wfBody tr');
   const last = rows[rows.length - 1];
   if (last) last.querySelector('.wfCell').focus();
-};
+}
+document.getElementById('wfAdd').onclick = addWfRow;
+document.getElementById('wfAddRow').onclick = addWfRow;
 document.getElementById('wfView').addEventListener('input', ev => {
   const t = ev.target;
   if (!t.matches('[data-wf]')) return;
@@ -1069,7 +1497,8 @@ document.getElementById('wfView').addEventListener('change', ev => {
   const w = wfById(t.dataset.wfsel);
   if (!w) return;
   w[t.dataset.f] = t.value;
-  t.className = t.dataset.nocolor ? 'wfSel wfType' : 'wfSel wf-' + t.value;
+  t.className = t.dataset.nocolor ? 'wfSel wfType' + (t.value ? '' : ' empty') : 'wfSel wf-' + t.value;
+  if (t.dataset.f === 'omar') t.closest('tr').classList.toggle('rowFix', t.value === 'fix');
   renderWfSummary();
   saveState();
 });
@@ -1095,82 +1524,152 @@ function itemLabel(n, key){
 
 function renderReport(){
   const g = globalStats();
-  const today = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
-  const barColor = g.pct >= 80 ? 'var(--ok)' : g.pct >= 50 ? 'var(--warn)' : 'var(--fail)';
+  const d = new Date();
+  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const mesAnio = `${MESES[d.getMonth()]} ${d.getFullYear()}`;
+  const fecha = `${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
 
-  let stepBars = '';
-  nodes.forEach(n => {
+  /* --- avance por paso --- */
+  const stepBars = nodes.map(n => {
     const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
-    stepBars += `<div class="barRow">
-      <span class="bn" title="${esc(n.name)}"><b style="color:${st.c}">●</b> ${esc(n.name)}</span>
-      <span class="bTrack">
-        <i style="width:${ss.pct}%; background:var(--ok); height:100%"></i>
-        <i style="width:${ss.total ? Math.round(ss.fail/ss.total*100) : 0}%; background:var(--fail); height:100%"></i>
-      </span>
-      <span class="bp">${ss.pct}%</span>
+    const barCol = ss.fail ? 'var(--bad)' : st.c === 'var(--line2)' ? 'var(--line2)' : st.c;
+    return `<div class="barRow">
+      <div class="bt"><span>${esc(n.name)}</span><span class="num">${ss.pct}%</span></div>
+      <div class="bTrack">
+        <i style="width:${ss.pct}%; background:${barCol}; height:100%; display:block"></i>
+        <i style="width:${ss.total ? Math.round(ss.fail/ss.total*100) : 0}%; background:var(--bad); height:100%; display:block"></i>
+      </div>
     </div>`;
-  });
+  }).join('');
 
+  /* --- hallazgos críticos: pasos rotos o con problemas --- */
+  const flagged = nodes.filter(n => ['fail','issue'].includes(stepAudit(n.id).status));
+  const findings = flagged.map(n => {
+    const sa = stepAudit(n.id), ss = stepStats(n);
+    const firstFails = checkables(n).filter(it => sa.checks[it.key] === false).slice(0,2).map(it => it.txt);
+    const desc = sa.notes.trim() || (firstFails.length ? firstFails.join(' · ') : `${ss.fail} punto(s) fallando de ${ss.total}.`);
+    return `<div class="finding ${sa.status === 'issue' ? 'warn' : ''}">
+      <div class="ft">${esc(n.name)}</div>
+      <div class="fd">${esc(STATUS[sa.status].lbl)} · ${esc(desc)}</div>
+    </div>`;
+  }).join('');
+
+  /* --- siguientes pasos: lo que está fallando, en orden de flujo --- */
+  const actions = [];
+  nodes.forEach(n => {
+    const sa = stepAudit(n.id);
+    checkables(n).forEach(it => { if (sa.checks[it.key] === false) actions.push(`${it.txt} — ${n.name}`); });
+  });
+  DEFAULT_TOOLS.forEach(t => {
+    const ta = toolAudit(t.name);
+    t.items.forEach((it, i) => { if (ta.checks[i] === false) actions.push(`${it} — ${t.name}`); });
+  });
+  const wfFix = workflows.filter(w => w.omar === 'fix' && (w.name || '').trim());
+  wfFix.forEach(w => actions.push(`${w.name}${w.next ? ' — ' + w.next : ''}`));
+  const nextSteps = actions.slice(0, 8).map((a, i) =>
+    `<div><span class="n num">${String(i+1).padStart(2,'0')}</span><span>${esc(a)}</span></div>`).join('');
+
+  /* --- tabla de herramientas --- */
+  const toolRows = DEFAULT_TOOLS.map(t => {
+    const ts = toolStats(t);
+    return `<tr><td>${esc(t.name)}</td><td class="num">${ts.pass}/${ts.total}</td>
+      <td class="num" style="color:${ts.fail ? 'var(--bad)' : 'var(--ink2)'}">${ts.fail || '—'}</td></tr>`;
+  }).join('');
+
+  /* --- listados detallados --- */
   let failHtml = '', missHtml = '';
   nodes.forEach(n => {
     const sa = stepAudit(n.id);
     checkables(n).forEach(it => {
-      const v = sa.checks[it.key];
-      const lbl = itemLabel(n, it.key);
-      const line = `<div class="miss ${v === false ? 'f' : ''}"><b>${esc(n.name)}</b> · <small>${lbl.side}${lbl.group ? ' → ' + esc(lbl.group) : ''}</small><br>${esc(lbl.txt)}</div>`;
-      if (v === false) failHtml += line;
-      else if (v !== true) missHtml += line;
+      const v = sa.checks[it.key], lbl = itemLabel(n, it.key);
+      const line = `<div class="liTight ${v === false ? 'f' : ''}"><b>${esc(n.name)}</b> · <small>${lbl.side}${lbl.group ? ' → ' + esc(lbl.group) : ''}</small><br>${esc(lbl.txt)}</div>`;
+      if (v === false) failHtml += line; else if (v !== true) missHtml += line;
     });
   });
-  let toolFailHtml = '', toolMissHtml = '', toolBars = '';
   DEFAULT_TOOLS.forEach(t => {
-    const ta = toolAudit(t.name), ts = toolStats(t);
-    toolBars += `<div class="barRow">
-      <span class="bn" title="${esc(t.name)}">${esc(t.name)}</span>
-      <span class="bTrack">
-        <i style="width:${ts.pct}%; background:var(--ok); height:100%"></i>
-        <i style="width:${ts.total ? Math.round(ts.fail/ts.total*100) : 0}%; background:var(--fail); height:100%"></i>
-      </span>
-      <span class="bp">${ts.pct}%</span>
-    </div>`;
+    const ta = toolAudit(t.name);
     t.items.forEach((it, i) => {
       const v = ta.checks[i];
-      const line = `<div class="miss ${v === false ? 'f' : ''}"><b>Tool: ${esc(t.name)}</b><br>${esc(it)}</div>`;
-      if (v === false) toolFailHtml += line;
-      else if (v !== true) toolMissHtml += line;
+      const line = `<div class="liTight ${v === false ? 'f' : ''}"><b>${esc(t.name)}</b><br>${esc(it)}</div>`;
+      if (v === false) failHtml += line; else if (v !== true) missHtml += line;
     });
   });
   let notesHtml = '';
   nodes.forEach(n => {
     const sa = stepAudit(n.id);
-    if (sa.notes.trim()) notesHtml += `<div class="miss"><b>${esc(n.name)}</b> (${STATUS[sa.status].lbl})<br>${esc(sa.notes)}</div>`;
+    if (sa.notes.trim()) notesHtml += `<div class="liTight"><b>${esc(n.name)}</b> <small>(${STATUS[sa.status].lbl})</small><br>${esc(sa.notes)}</div>`;
   });
-  let brokenSteps = nodes.filter(n => stepAudit(n.id).status === 'fail');
-  let issueSteps = nodes.filter(n => stepAudit(n.id).status === 'issue');
+  DEFAULT_TOOLS.forEach(t => {
+    const ta = toolAudit(t.name);
+    if ((ta.notes || '').trim()) notesHtml += `<div class="liTight"><b>${esc(t.name)}</b><br>${esc(ta.notes)}</div>`;
+  });
+
+  const brokenCount = nodes.filter(n => stepAudit(n.id).status === 'fail').length;
+  const logo = document.querySelector('.brandPlate img').src;
 
   document.getElementById('reportBody').innerHTML = `
-    <div class="rCard">
-      <h3>HubSpot / pipeline audit report — Reputation Pros</h3>
-      <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px">Generated ${today} · Inbound Lead Processing & Sales Pipeline SOP</div>
-      <div style="display:flex; gap:28px; align-items:center; flex-wrap:wrap;">
-        <div><div class="bigPct" style="color:${barColor}">${g.pct}%</div><div style="font-size:12px; color:var(--muted)">Overall completion<br>(data points + tools confirmed)</div></div>
-        <div style="flex:1; min-width:240px;">
-          <div style="font-size:12.5px; margin-bottom:2px">Data points: <b>${g.pass}/${g.total}</b> confirmed (${g.itemPct}%) · <b style="color:var(--fail)">${g.fail} failing</b> · ${g.pending} not audited</div>
-          <div class="progressBar" style="height:10px"><i style="width:${g.itemPct}%"></i></div>
-          <div style="font-size:12.5px; margin:10px 0 2px">Tools: <b>${g.tPass}/${g.tTotal}</b> confirmed · <b style="color:var(--fail)">${g.tFail} failing</b></div>
-          <div class="progressBar" style="height:10px"><i style="width:${g.tTotal ? Math.round(g.tPass/g.tTotal*100) : 0}%"></i></div>
+    <div class="rptHero">
+      <div class="dots"></div>
+      <div class="inner">
+        <div style="flex:1; min-width:260px">
+          <img src="${logo}" alt="Reputation Pros">
+          <div class="rptEyebrow">Pipeline audit · ${mesAnio}</div>
+          <h1>Auditoría del proceso de ventas end-to-end</h1>
+          <div class="lede">${nodes.length} pasos · ${DEFAULT_TOOLS.length} herramientas · ${g.allTotal} puntos de verificación.
+            Fillout → HubSpot → GoHighLevel → Slack → Stripe.</div>
+        </div>
+        <div class="rptScore">
+          <div class="rptEyebrow">Avance</div>
+          <div class="big num">${g.pct}%</div>
+          <div class="cap num">${g.allPass} / ${g.allTotal} verificados</div>
         </div>
       </div>
     </div>
-    <div class="rCard"><h3>Completion by step</h3>${stepBars}</div>
-    <div class="rCard"><h3>Completion by tool / integration</h3>${toolBars}</div>
-    ${brokenSteps.length || issueSteps.length ? `<div class="rCard"><h3>⚠️ Steps flagged</h3>
-      ${brokenSteps.map(n => `<div class="miss f"><b>${esc(n.name)}</b> — ❌ Broken</div>`).join('')}
-      ${issueSteps.map(n => `<div class="miss" style="border-left-color:var(--warn); background:#fdf9ef"><b>${esc(n.name)}</b> — ⚠️ Works with issues</div>`).join('')}
-    </div>` : ''}
-    <div class="rCard"><h3>❌ Failing items (${g.fail + g.tFail})</h3>${failHtml + toolFailHtml || '<small style="color:var(--muted)">Nothing marked as failing yet.</small>'}</div>
-    <div class="rCard"><h3>⏳ Pending verification (${g.pending + (g.tTotal - g.tPass - g.tFail)})</h3>${(missHtml + toolMissHtml) || '<small style="color:var(--muted)">Everything has been audited. 🎉</small>'}</div>
-    ${notesHtml ? `<div class="rCard"><h3>📝 Audit notes by step</h3>${notesHtml}</div>` : ''}`;
+
+    <div class="rptKpis">
+      <div><div class="k">Funcionan</div><div class="v num" style="color:var(--ok)">${g.allPass}</div></div>
+      <div><div class="k">Fallando</div><div class="v num" style="color:var(--bad)">${g.allFail}</div></div>
+      <div><div class="k">Pendientes</div><div class="v num" style="color:var(--ink2)">${g.allPending}</div></div>
+      <div><div class="k">Pasos rotos</div><div class="v num">${brokenCount} <small>de ${nodes.length}</small></div></div>
+    </div>
+
+    <div class="rptBody">
+      <div>
+        <div class="rptH">Avance por paso</div>
+        <div class="barList">${stepBars}</div>
+      </div>
+      <div>
+        <div class="rptH bad">Hallazgos críticos</div>
+        <div class="findList">${findings || '<div class="finding" style="border-left-color:var(--ok)"><div class="ft">Sin pasos marcados como rotos</div><div class="fd">Ningún paso está marcado como Broken o Issues todavía.</div></div>'}</div>
+        <div class="rptH" style="margin-top:24px">Siguientes pasos</div>
+        <div class="stepsList">${nextSteps || '<div><span>Nada marcado como fallando todavía.</span></div>'}</div>
+      </div>
+    </div>
+
+    <div class="rptSection">
+      <div class="rptH">Herramientas e integraciones</div>
+      <table class="rptTable">
+        <thead><tr><th>Herramienta</th><th>Confirmados</th><th>Fallando</th></tr></thead>
+        <tbody>${toolRows}</tbody>
+      </table>
+    </div>
+
+    <div class="rptSection">
+      <div class="rptH bad">Puntos fallando (${g.allFail})</div>
+      <div style="margin-top:10px">${failHtml || '<div class="liTight"><small>Nada marcado como fallando.</small></div>'}</div>
+    </div>
+
+    <div class="rptSection">
+      <div class="rptH">Pendientes de verificar (${g.allPending})</div>
+      <div style="margin-top:10px">${missHtml || '<div class="liTight"><small>Todo auditado. 🎉</small></div>'}</div>
+    </div>
+
+    ${notesHtml ? `<div class="rptSection"><div class="rptH">Notas de auditoría</div><div style="margin-top:10px">${notesHtml}</div></div>` : ''}
+
+    <div class="rptFoot">
+      <span>Reputation Pros · Pipeline Audit</span>
+      <span>Generado ${fecha}</span>
+    </div>`;
 }
 
 function buildMarkdown(){
@@ -1228,6 +1727,36 @@ function showTip(msg){
   clearTimeout(tipTimer);
   tipTimer = setTimeout(() => t.style.display = 'none', 3200);
 }
+
+/* ---------- Tema claro / oscuro (preferencia local, no compartida) ---------- */
+const THEME_KEY = 'audit-theme';
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('btnTheme').textContent = t === 'dark' ? '☀' : '☾';
+  document.getElementById('btnTheme').title = t === 'dark' ? 'Cambiar a claro' : 'Cambiar a oscuro';
+}
+let theme = 'light';
+try{ theme = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }catch(e){}
+applyTheme(theme);
+document.getElementById('btnTheme').onclick = () => {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
+  applyTheme(theme);
+  render();
+};
+
+/* ---------- Menú ⋯ ---------- */
+const appMenu = document.getElementById('appMenu');
+document.getElementById('btnMenu').onclick = e => { e.stopPropagation(); appMenu.classList.toggle('open'); };
+document.addEventListener('click', e => { if (!appMenu.contains(e.target)) appMenu.classList.remove('open'); });
+appMenu.addEventListener('click', () => appMenu.classList.remove('open'));
+
+/* ---------- Share link ---------- */
+document.getElementById('btnShare').onclick = async () => {
+  const url = location.href.split('#')[0];
+  try{ await navigator.clipboard.writeText(url); showTip('Link copiado ✓ — cualquiera con él ve y edita lo mismo'); }
+  catch(e){ showTip(url); }
+};
 
 window.addEventListener('resize', () => { if (!views.flow.classList.contains('hidden')) render(); });
 fitAll();
