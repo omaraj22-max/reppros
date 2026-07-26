@@ -51,7 +51,12 @@ module.exports = async (req, res) => {
       ) {
         return res.status(400).json({ error: 'Body must be {nodes, edges, audit}' });
       }
-      const state = { nodes: body.nodes, edges: body.edges, audit: body.audit };
+      const state = {
+        nodes: body.nodes,
+        edges: body.edges,
+        audit: body.audit,
+        workflows: Array.isArray(body.workflows) ? body.workflows : []
+      };
       await redis(['SET', KEY, JSON.stringify(state)]);
       return res.status(200).json({ ok: true });
     }

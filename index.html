@@ -63,8 +63,35 @@
   #hud button{width:34px; height:34px; padding:0; font-size:16px; border-radius:9px;}
   #zoomLbl{position:absolute; bottom:20px; left:130px; font-size:12px; color:var(--muted);}
   #tip{position:absolute; top:12px; left:50%; transform:translateX(-50%); background:#1f2420; color:#fff; font-size:12px; padding:7px 14px; border-radius:20px; display:none; pointer-events:none; white-space:nowrap; z-index:9;}
-  #auditView, #reportView{flex:1; overflow-y:auto; padding:20px; display:none;}
-  #auditView.active, #reportView.active{display:block;}
+  #auditView, #reportView, #wfView{flex:1; overflow-y:auto; padding:20px; display:none;}
+  #auditView.active, #reportView.active, #wfView.active{display:block;}
+  /* ---- Workflow audits (hoja tipo spreadsheet) ---- */
+  .wfBar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;}
+  .wfChip{font-size:12px; padding:4px 11px; border-radius:20px; background:var(--card); border:1px solid var(--border); color:var(--muted);}
+  .wfChip b{color:var(--ink);}
+  .wfScroll{overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--card);}
+  .wfTable{width:100%; min-width:900px; border-collapse:collapse;}
+  .wfTable th{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+    text-align:left; padding:10px 12px; background:#fafbf9; border-bottom:1px solid var(--border); border-right:1px solid var(--border); white-space:nowrap;}
+  .wfTable th:last-child, .wfTable td:last-child{border-right:none;}
+  .wfTable td{border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:0; vertical-align:top;}
+  .wfTable tr:last-child td{border-bottom:none;}
+  .wfTable tr:hover td{background:#fcfdfb;}
+  .wfNum{width:40px; text-align:center; font-size:11.5px; color:var(--muted); padding:12px 0 !important; background:#fafbf9;}
+  .wfCell{width:100%; border:none; background:transparent; font:inherit; font-size:13px; line-height:1.45;
+    padding:10px 12px; resize:none; overflow:hidden; color:var(--ink); display:block; min-height:40px;}
+  .wfCell:focus{outline:2px solid #1f2420; outline-offset:-2px; background:#fff; border-radius:4px;}
+  .wfCell::placeholder{color:#b9c0ba;}
+  .wfSel{font:inherit; font-size:12px; font-weight:600; padding:6px 8px; margin:7px 10px; border-radius:8px; border:1.5px solid var(--border); cursor:pointer; background:#fff; width:calc(100% - 20px);}
+  .wf-on{border-color:var(--ok); color:var(--ok); background:#eefaf4;}
+  .wf-off{color:var(--muted); background:#f4f5f3;}
+  .wf-checking{color:var(--muted);}
+  .wf-wip{border-color:var(--warn); color:#854F0B; background:#fdf6e8;}
+  .wf-pass{border-color:var(--ok); color:var(--ok); background:#eefaf4;}
+  .wf-fix{border-color:var(--fail); color:var(--fail); background:#fdefef;}
+  .wfDel{border:none; background:transparent; color:#b9c0ba; font-size:13px; padding:10px 12px; cursor:pointer; width:100%;}
+  .wfDel:hover{color:var(--fail); background:#fdefef;}
+  .wfEmpty{padding:26px; text-align:center; color:var(--muted); font-size:13px;}
   #flowView{flex:1; display:flex; overflow:hidden;}
   #flowView.hidden{display:none;}
   .summary{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
@@ -111,7 +138,7 @@
   .miss small{color:var(--muted);}
   .bigPct{font-size:40px; font-weight:700;}
   @media print{
-    header, .legend, .tabs, .toolbar, #flowView, #auditView{display:none !important;}
+    header, .legend, .tabs, .toolbar, #flowView, #auditView, #wfView{display:none !important;}
     body{height:auto; overflow:visible; background:#fff;}
     #reportView{display:block !important; overflow:visible; padding:0;}
     .rCard{break-inside:avoid; border-color:#ccc;}
@@ -128,6 +155,7 @@
   <div class="tabs">
     <div class="tab active" id="tabFlow">🗺 Flow chart</div>
     <div class="tab" id="tabAudit">✅ Audit checklist</div>
+    <div class="tab" id="tabWf">🧾 Workflow audits</div>
     <div class="tab" id="tabReport">📄 Report</div>
   </div>
   <div class="toolbar">
@@ -218,6 +246,26 @@
       <div class="auditBody" id="toolsBody"></div>
     </div>
     <div id="stepsAudit"></div>
+  </div>
+
+  <div id="wfView">
+    <div class="wfBar">
+      <button id="wfAdd">＋ Add workflow</button>
+      <span id="wfSummary" style="display:flex; gap:8px; flex-wrap:wrap;"></span>
+    </div>
+    <div class="wfScroll">
+      <table class="wfTable">
+        <colgroup>
+          <col style="width:40px"><col style="width:20%"><col style="width:28%"><col style="width:120px">
+          <col style="width:28%"><col style="width:160px"><col style="width:44px">
+        </colgroup>
+        <thead><tr>
+          <th></th><th>Name</th><th>Description</th><th>Status</th><th>Next steps</th><th>Omar's Status</th><th></th>
+        </tr></thead>
+        <tbody id="wfBody"></tbody>
+      </table>
+      <div class="wfEmpty" id="wfEmpty" style="display:none">No hay workflows todavía — dale a “＋ Add workflow”.</div>
+    </div>
   </div>
 
   <div id="reportView">
@@ -375,6 +423,12 @@ let nodes = JSON.parse(JSON.stringify(DEFAULT_NODES));
 let edges = JSON.parse(JSON.stringify(DEFAULT_EDGES));
 let audit = {steps:{}, tools:{}};
 
+/* Workflow audits: hoja editable. status: on|off · omar: checking|wip|pass|fix */
+const WF_OMAR = {checking:'🔍 Checking', wip:'🛠 WIP', pass:'✅ Pass', fix:'❌ Needs fix'};
+function blankWf(){ return {id:'w' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4), name:'', desc:'', status:'on', next:'', omar:'checking'}; }
+function seedWf(){ return [blankWf(), blankWf(), blankWf()]; }
+let workflows = seedWf();
+
 /* ---------- Shared state (Upstash Redis via /api/state) ---------- */
 const saveStatusEl = document.getElementById('saveStatus');
 function setSaveStatus(s){
@@ -385,8 +439,9 @@ function setSaveStatus(s){
 }
 const LS_KEY = 'audit-state-local';
 let saveTimer = null, retryTimer = null, dirty = false;
+function fullState(){ return {nodes, edges, audit, workflows}; }
 function persistLocal(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify({state:{nodes, edges, audit}, dirty, ts:Date.now()})); }catch(e){}
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({state:fullState(), dirty, ts:Date.now()})); }catch(e){}
 }
 function saveState(){
   dirty = true;
@@ -400,7 +455,7 @@ async function doSave(){
     const r = await fetch('/api/state', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({nodes, edges, audit})
+      body: JSON.stringify(fullState())
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     dirty = false;
@@ -417,7 +472,7 @@ saveStatusEl.addEventListener('click', () => {
 window.addEventListener('pagehide', () => {
   if (dirty && navigator.sendBeacon){
     clearTimeout(saveTimer); clearTimeout(retryTimer);
-    navigator.sendBeacon('/api/state', new Blob([JSON.stringify({nodes, edges, audit})], {type:'application/json'}));
+    navigator.sendBeacon('/api/state', new Blob([JSON.stringify(fullState())], {type:'application/json'}));
     dirty = false;
   }
 });
@@ -438,8 +493,9 @@ async function loadState(){
 
   if (chosen){
     nodes = chosen.nodes; edges = chosen.edges; audit = chosen.audit;
+    if (Array.isArray(chosen.workflows)) workflows = chosen.workflows;
     selectedNode = null; selectedEdge = null; closePanel();
-    fitAll(); renderAudit(); renderReport();
+    fitAll(); renderAudit(); renderReport(); renderWf();
   }
   if (fromLocal){
     showTip('Restaurado del respaldo local — sincronizando…');
@@ -665,7 +721,7 @@ function fitAll(){
   const minX = Math.min(...nodes.map(n => n.x)) - 40, maxX = Math.max(...nodes.map(n => n.x + NODE_W)) + 40;
   const minY = Math.min(...nodes.map(n => n.y)) - 40, maxY = Math.max(...nodes.map(n => n.y + NODE_H)) + 40;
   const r = svg.getBoundingClientRect();
-  if (r.width === 0) return;
+  if (r.width === 0){ render(); return; } /* pestaña oculta: no se puede medir, pero igual dibujamos */
   view.s = Math.min(r.width / (maxX - minX), r.height / (maxY - minY), 1.4);
   view.x = (r.width - (maxX - minX) * view.s) / 2 - minX * view.s;
   view.y = (r.height - (maxY - minY) * view.s) / 2 - minY * view.s;
@@ -696,7 +752,7 @@ document.getElementById('btnAdd').onclick = () => {
   showTip('Step added at the center of the view — rename it in the panel and drag it into place');
 };
 document.getElementById('btnExport').onclick = () => {
-  const blob = new Blob([JSON.stringify({nodes, edges, audit}, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify(fullState(), null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = 'sales-flow-audit-reputation-pros.json'; a.click();
 };
@@ -710,8 +766,9 @@ document.getElementById('fileImport').onchange = ev => {
       if (d.nodes) nodes = d.nodes;
       if (d.edges) edges = d.edges;
       if (d.audit) audit = d.audit;
+      if (Array.isArray(d.workflows)) workflows = d.workflows;
       selectedNode = null; selectedEdge = null; closePanel();
-      fitAll(); renderAudit(); renderReport(); showTip('Imported ✓'); saveState();
+      fitAll(); renderAudit(); renderReport(); renderWf(); showTip('Imported ✓'); saveState();
     } catch(e){ showTip('Invalid JSON file'); }
   };
   rd.readAsText(f);
@@ -727,11 +784,12 @@ function askConfirm(msg, cb){
   cancel.onclick = close;
 }
 document.getElementById('btnReset').onclick = () => {
-  askConfirm('Reset the original flow and clear the audit? All changes will be lost.', () => {
+  askConfirm('Reset the original flow, the audit and the workflow audits? All changes will be lost — for everyone.', () => {
     nodes = JSON.parse(JSON.stringify(DEFAULT_NODES));
     edges = JSON.parse(JSON.stringify(DEFAULT_EDGES));
     audit = {steps:{}, tools:{}};
-    selectedNode = null; selectedEdge = null; closePanel(); fitAll(); renderAudit(); renderReport(); saveState();
+    workflows = seedWf();
+    selectedNode = null; selectedEdge = null; closePanel(); fitAll(); renderAudit(); renderReport(); renderWf(); saveState();
   });
 };
 document.getElementById('edgeLabel').addEventListener('input', ev => {
@@ -739,19 +797,22 @@ document.getElementById('edgeLabel').addEventListener('input', ev => {
 });
 
 /* ---------- Tabs ---------- */
-const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), report:document.getElementById('tabReport')};
-const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), report:document.getElementById('reportView')};
+const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), wf:document.getElementById('tabWf'), report:document.getElementById('tabReport')};
+const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), wf:document.getElementById('wfView'), report:document.getElementById('reportView')};
 function showTab(k){
   Object.keys(tabs).forEach(x => tabs[x].classList.toggle('active', x === k));
   views.flow.classList.toggle('hidden', k !== 'flow');
   views.audit.classList.toggle('active', k === 'audit');
+  views.wf.classList.toggle('active', k === 'wf');
   views.report.classList.toggle('active', k === 'report');
   if (k === 'flow') setTimeout(fitAll, 0);
   if (k === 'audit') renderAudit();
+  if (k === 'wf') renderWf();
   if (k === 'report') renderReport();
 }
 tabs.flow.onclick = () => showTab('flow');
 tabs.audit.onclick = () => showTab('audit');
+tabs.wf.onclick = () => showTab('wf');
 tabs.report.onclick = () => showTab('report');
 
 /* ---------- Side panel ---------- */
@@ -928,6 +989,76 @@ document.getElementById('auditView').addEventListener('input', ev => {
   if (ev.target.matches('[data-toolnote]')){ toolAudit(DEFAULT_TOOLS[+ev.target.dataset.toolnote].name).notes = ev.target.value; saveState(); }
 });
 
+/* ---------- Workflow audits tab ---------- */
+function wfById(id){ return workflows.find(w => w.id === id); }
+function autoGrow(el){ el.style.height = 'auto'; el.style.height = (el.scrollHeight + 2) + 'px'; }
+
+function renderWfSummary(){
+  const c = {on:0, off:0, checking:0, wip:0, pass:0, fix:0};
+  workflows.forEach(w => { if (c[w.status] !== undefined) c[w.status]++; if (c[w.omar] !== undefined) c[w.omar]++; });
+  document.getElementById('wfSummary').innerHTML = `
+    <span class="wfChip"><b>${workflows.length}</b> workflows</span>
+    <span class="wfChip" style="border-color:var(--ok)"><b style="color:var(--ok)">${c.on}</b> On · <b>${c.off}</b> Off</span>
+    <span class="wfChip"><b>${c.checking}</b> Checking</span>
+    <span class="wfChip"><b style="color:#854F0B">${c.wip}</b> WIP</span>
+    <span class="wfChip"><b style="color:var(--ok)">${c.pass}</b> Pass</span>
+    <span class="wfChip"><b style="color:var(--fail)">${c.fix}</b> Needs fix</span>`;
+}
+
+function renderWf(){
+  renderWfSummary();
+  const opts = (map, val) => Object.keys(map).map(k => `<option value="${k}" ${val === k ? 'selected' : ''}>${map[k]}</option>`).join('');
+  document.getElementById('wfBody').innerHTML = workflows.map((w, i) => `
+    <tr>
+      <td class="wfNum">${i + 1}</td>
+      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="name" placeholder="Nombre del workflow">${esc(w.name || '')}</textarea></td>
+      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="desc" placeholder="Qué hace / qué dispara">${esc(w.desc || '')}</textarea></td>
+      <td><select class="wfSel wf-${w.status}" data-wfsel="${w.id}" data-f="status">${opts({on:'🟢 On', off:'⚪️ Off'}, w.status)}</select></td>
+      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="next" placeholder="Qué sigue / qué arreglar">${esc(w.next || '')}</textarea></td>
+      <td><select class="wfSel wf-${w.omar}" data-wfsel="${w.id}" data-f="omar">${opts(WF_OMAR, w.omar)}</select></td>
+      <td><button class="wfDel" data-wfdel="${w.id}" title="Eliminar fila">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('wfEmpty').style.display = workflows.length ? 'none' : 'block';
+  document.querySelectorAll('#wfBody .wfCell').forEach(autoGrow);
+}
+
+document.getElementById('wfAdd').onclick = () => {
+  workflows.push(blankWf());
+  renderWf(); saveState();
+  const rows = document.querySelectorAll('#wfBody tr');
+  const last = rows[rows.length - 1];
+  if (last) last.querySelector('.wfCell').focus();
+};
+document.getElementById('wfView').addEventListener('input', ev => {
+  const t = ev.target;
+  if (!t.matches('[data-wf]')) return;
+  const w = wfById(t.dataset.wf);
+  if (!w) return;
+  w[t.dataset.f] = t.value;
+  autoGrow(t);
+  saveState();
+});
+document.getElementById('wfView').addEventListener('change', ev => {
+  const t = ev.target;
+  if (!t.matches('[data-wfsel]')) return;
+  const w = wfById(t.dataset.wfsel);
+  if (!w) return;
+  w[t.dataset.f] = t.value;
+  t.className = 'wfSel wf-' + t.value;
+  renderWfSummary();
+  saveState();
+});
+document.getElementById('wfView').addEventListener('click', ev => {
+  const del = ev.target.closest('[data-wfdel]');
+  if (!del) return;
+  const w = wfById(del.dataset.wfdel);
+  if (!w) return;
+  const drop = () => { workflows = workflows.filter(x => x.id !== w.id); renderWf(); saveState(); };
+  const hasData = (w.name || w.desc || w.next || '').trim();
+  if (hasData) askConfirm(`¿Eliminar el workflow "${w.name || 'sin nombre'}"?`, drop);
+  else drop();
+});
+
 /* ---------- Report tab ---------- */
 function itemLabel(n, key){
   const arr = key[0] === 'n' ? n.needs : n.gen;
@@ -1077,6 +1208,7 @@ window.addEventListener('resize', () => { if (!views.flow.classList.contains('hi
 fitAll();
 renderAudit();
 renderReport();
+renderWf();
 loadState();
 </script>
 </body>
