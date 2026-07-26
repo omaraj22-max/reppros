@@ -1,10 +1,20 @@
 const KEY = 'audit-state';
 
+/* Acepta los distintos nombres que Vercel/Upstash usan segun como se cree la base */
+function creds() {
+  const e = process.env;
+  return {
+    url: e.KV_REST_API_URL || e.UPSTASH_REDIS_REST_URL || e.REDIS_REST_API_URL || e.KV_URL_REST,
+    token: e.KV_REST_API_TOKEN || e.UPSTASH_REDIS_REST_TOKEN || e.REDIS_REST_API_TOKEN
+  };
+}
+
 async function redis(command) {
-  const r = await fetch(process.env.KV_REST_API_URL, {
+  const { url, token } = creds();
+  const r = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(command)
@@ -15,9 +25,11 @@ async function redis(command) {
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+  const { url, token } = creds();
+  if (!url || !token) {
     return res.status(500).json({
-      error: 'Missing KV_REST_API_URL / KV_REST_API_TOKEN env vars in this Vercel project. Add them in Settings → Environment Variables and redeploy.'
+      error: 'Falta conectar la base de datos Redis a este proyecto de Vercel. Se buscaron las variables KV_REST_API_URL / KV_REST_API_TOKEN y UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN y ninguna existe. Conecta la base en Storage (o agregalas en Settings > Environment Variables) y vuelve a hacer Redeploy.',
+      found: Object.keys(process.env).filter(k => /KV_|UPSTASH|REDIS/.test(k))
     });
   }
   try {
