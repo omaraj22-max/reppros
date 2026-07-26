@@ -15,6 +15,11 @@ async function redis(command) {
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    return res.status(500).json({
+      error: 'Missing KV_REST_API_URL / KV_REST_API_TOKEN env vars in this Vercel project. Add them in Settings → Environment Variables and redeploy.'
+    });
+  }
   try {
     if (req.method === 'GET') {
       const { result } = await redis(['GET', KEY]);

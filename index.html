@@ -383,9 +383,14 @@ function setSaveStatus(s){
   else if (s === 'error'){ saveStatusEl.textContent = 'Error al guardar (reintenta)'; saveStatusEl.style.color = 'var(--fail)'; saveStatusEl.style.cursor = 'pointer'; }
   else { saveStatusEl.textContent = ''; }
 }
+const LS_KEY = 'audit-state-local';
 let saveTimer = null, retryTimer = null, dirty = false;
+function persistLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({state:{nodes, edges, audit}, dirty, ts:Date.now()})); }catch(e){}
+}
 function saveState(){
   dirty = true;
+  persistLocal();
   clearTimeout(saveTimer); clearTimeout(retryTimer);
   setSaveStatus('saving');
   saveTimer = setTimeout(doSave, 1500);
@@ -399,6 +404,7 @@ async function doSave(){
     });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     dirty = false;
+    persistLocal();
     setSaveStatus('saved');
   } catch(e){
     setSaveStatus('error');
@@ -415,18 +421,30 @@ window.addEventListener('pagehide', () => {
     dirty = false;
   }
 });
+function validState(d){ return d && Array.isArray(d.nodes) && Array.isArray(d.edges) && d.audit && typeof d.audit === 'object'; }
 async function loadState(){
+  let local = null;
+  try{ local = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){}
+  let server = null;
   try{
     const r = await fetch('/api/state', {cache:'no-store'});
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    if (d && Array.isArray(d.nodes) && Array.isArray(d.edges) && d.audit && typeof d.audit === 'object'){
-      nodes = d.nodes; edges = d.edges; audit = d.audit;
-      selectedNode = null; selectedEdge = null; closePanel();
-      fitAll(); renderAudit(); renderReport();
-      showTip('Estado compartido cargado ✓');
-    }
-  } catch(e){ /* sin API (local) o Redis vacío: se quedan los defaults */ }
+    if (r.ok) server = await r.json();
+  } catch(e){ /* sin API (file:// o local): usamos el respaldo */ }
+
+  let chosen = null, fromLocal = false;
+  if (local && local.dirty && validState(local.state)){ chosen = local.state; fromLocal = true; }
+  else if (validState(server)) chosen = server;
+  else if (local && validState(local.state)){ chosen = local.state; fromLocal = true; }
+
+  if (chosen){
+    nodes = chosen.nodes; edges = chosen.edges; audit = chosen.audit;
+    selectedNode = null; selectedEdge = null; closePanel();
+    fitAll(); renderAudit(); renderReport();
+  }
+  if (fromLocal){
+    showTip('Restaurado del respaldo local — sincronizando…');
+    saveState();
+  } else if (chosen) showTip('Estado compartido cargado ✓');
 }
 
 function stepAudit(id){ if (!audit.steps[id]) audit.steps[id] = {status:'pending', notes:'', checks:{}}; return audit.steps[id]; }
