@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Pipeline Flow, Audit & Report — Reputation Pros</title>
+<style>
+  :root{
+    --auto-fill:#E1F5EE; --auto-line:#1D9E75; --auto-text:#085041;
+    --man-fill:#FAEEDA;  --man-line:#EF9F27;  --man-text:#633806;
+    --mix-fill:#EEEDFE;  --mix-line:#7F77DD;  --mix-text:#3C3489;
+    --end-fill:#FCEBEB;  --end-line:#E24B4A;  --end-text:#791F1F;
+    --ok:#1D9E75; --warn:#EF9F27; --fail:#E24B4A; --pending:#9aa19c;
+    --ink:#1f2420; --muted:#6b7370; --bg:#f4f5f3; --card:#ffffff; --border:#dde1dd;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"Segoe UI", system-ui, -apple-system, sans-serif; color:var(--ink); background:var(--bg); height:100vh; display:flex; flex-direction:column; overflow:hidden;}
+  header{display:flex; align-items:center; gap:14px; padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border); flex-wrap:wrap;}
+  header h1{font-size:16px; font-weight:600;}
+  header .sub{font-size:12px; color:var(--muted);}
+  .tabs{display:flex; gap:4px; margin-left:24px;}
+  .tab{font-size:13px; padding:7px 16px; border:1px solid var(--border); border-radius:9px; cursor:pointer; background:#fff; color:var(--muted);}
+  .tab.active{background:#1f2420; color:#fff; border-color:#1f2420;}
+  .toolbar{display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; align-items:center;}
+  button{font:inherit; font-size:12.5px; padding:6px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; color:var(--ink);}
+  button:hover{background:#f0f2ef;}
+  button.active{background:#1f2420; color:#fff; border-color:#1f2420;}
+  button.danger{color:#a32d2d; border-color:#f0c0c0;}
+  button.danger:hover{background:#fceaea;}
+  .legend{display:flex; gap:14px; padding:6px 16px; background:var(--card); border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); flex-wrap:wrap; align-items:center;}
+  .dot{display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; border:1.5px solid;}
+  .d-auto{background:var(--auto-fill); border-color:var(--auto-line);}
+  .d-man{background:var(--man-fill); border-color:var(--man-line);}
+  .d-mix{background:var(--mix-fill); border-color:var(--mix-line);}
+  .d-end{background:var(--end-fill); border-color:var(--end-line);}
+  #main{flex:1; display:flex; overflow:hidden;}
+  #canvasWrap{flex:1; position:relative; overflow:hidden; background:
+    linear-gradient(90deg, rgba(0,0,0,0.035) 1px, transparent 1px) 0 0/26px 26px,
+    linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px) 0 0/26px 26px, var(--bg);}
+  #svg{width:100%; height:100%; display:block; cursor:grab; touch-action:none;}
+  #svg.panning{cursor:grabbing;}
+  #svg.connectMode{cursor:crosshair;}
+  #panel{width:340px; min-width:340px; background:var(--card); border-left:1px solid var(--border); overflow-y:auto; padding:16px; display:none;}
+  #panel.open{display:block;}
+  #panel h2{font-size:14px; margin-bottom:4px;}
+  #panel .badge{display:inline-block; font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; margin:6px 6px 12px 0;}
+  #panel label{display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:12px 0 4px;}
+  #panel input[type=text], #panel select, #panel textarea{width:100%; font:inherit; font-size:13px; padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:#fff;}
+  #panel textarea{resize:vertical; min-height:70px; line-height:1.45;}
+  #panel .hint{font-size:11px; color:var(--muted); margin-top:3px;}
+  #panel .row{display:flex; gap:8px; margin-top:14px;}
+  .node-g{cursor:move;}
+  .node-g rect.body{stroke-width:1.6;}
+  .node-g.selected rect.body{stroke-width:3;}
+  .node-g.connSrc rect.body{stroke-dasharray:6 4; stroke-width:3;}
+  .edge-hit{stroke:transparent; stroke-width:16; fill:none; cursor:pointer;}
+  .edge-line{fill:none; stroke-width:1.8; pointer-events:none;}
+  .edge-line.selected{stroke-width:3.5;}
+  .edge-lbl{font-size:10.5px; fill:#5f5e5a; pointer-events:none;}
+  .edge-lbl-bg{fill:var(--bg); opacity:.92; pointer-events:none;}
+  text{user-select:none;}
+  #hud{position:absolute; bottom:14px; left:14px; display:flex; gap:6px;}
+  #hud button{width:34px; height:34px; padding:0; font-size:16px; border-radius:9px;}
+  #zoomLbl{position:absolute; bottom:20px; left:130px; font-size:12px; color:var(--muted);}
+  #tip{position:absolute; top:12px; left:50%; transform:translateX(-50%); background:#1f2420; color:#fff; font-size:12px; padding:7px 14px; border-radius:20px; display:none; pointer-events:none; white-space:nowrap; z-index:9;}
+  #auditView, #reportView{flex:1; overflow-y:auto; padding:20px; display:none;}
+  #auditView.active, #reportView.active{display:block;}
+  #flowView{flex:1; display:flex; overflow:hidden;}
+  #flowView.hidden{display:none;}
+  .summary{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+  .sumCard{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 18px; min-width:130px;}
+  .sumCard .num{font-size:22px; font-weight:600;}
+  .sumCard .lbl{font-size:11.5px; color:var(--muted);}
+  .auditSection{background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:16px; overflow:hidden;}
+  .auditHead{display:flex; align-items:center; gap:10px; padding:13px 16px; cursor:pointer; flex-wrap:wrap;}
+  .auditHead:hover{background:#fafbf9;}
+  .auditHead h3{font-size:14px; font-weight:600; flex:1; min-width:180px;}
+  .typeBadge{font-size:10.5px; padding:2px 9px; border-radius:20px; font-weight:600; border:1px solid;}
+  .pct{font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:20px; background:#f0f2ef; color:var(--muted);}
+  .statusSel{font:inherit; font-size:12px; padding:5px 8px; border-radius:8px; border:1.5px solid var(--border); font-weight:600; cursor:pointer;}
+  .statusSel.s-ok{border-color:var(--ok); color:var(--ok); background:#eefaf4;}
+  .statusSel.s-issue{border-color:var(--warn); color:#854F0B; background:#fdf6e8;}
+  .statusSel.s-fail{border-color:var(--fail); color:var(--fail); background:#fdefef;}
+  .statusSel.s-pending{color:var(--muted);}
+  .chev{font-size:12px; color:var(--muted); transition:transform .15s;}
+  .auditSection.open .chev{transform:rotate(90deg);}
+  .auditBody{display:none; padding:0 16px 16px; border-top:1px solid var(--border);}
+  .auditSection.open .auditBody{display:block;}
+  .colGrid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:12px;}
+  @media (max-width:820px){ .colGrid{grid-template-columns:1fr;} }
+  .colGrid h4{font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;}
+  .grpLbl{font-size:10.5px; font-weight:700; color:#8a918c; margin:10px 0 2px; letter-spacing:.03em;}
+  .chk{display:flex; align-items:flex-start; gap:8px; padding:4px 0; font-size:13px; line-height:1.4;}
+  .chk input{margin-top:2.5px; width:15px; height:15px; accent-color:var(--ok); cursor:pointer; flex:none;}
+  .chk.checked > span:last-child{color:var(--muted); text-decoration:line-through; text-decoration-color:#c9d6cd;}
+  .chk .no{flex:none; font-size:10.5px; padding:1px 7px; border-radius:12px; border:1px solid var(--border); color:var(--muted); cursor:pointer; margin-top:1px;}
+  .chk .no.on{border-color:var(--fail); color:var(--fail); background:#fdefef; font-weight:600;}
+  .notes{width:100%; font:inherit; font-size:12.5px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; margin-top:12px; resize:vertical; min-height:52px;}
+  .ownerLine{font-size:12px; color:var(--muted); margin-top:8px;}
+  .toolTag{font-size:11px; background:#f0f2ef; border:1px solid var(--border); border-radius:12px; padding:1px 9px; color:var(--muted);}
+  .progressBar{height:6px; background:#e7eae6; border-radius:4px; overflow:hidden; margin-top:6px;}
+  .progressBar i{display:block; height:100%; background:var(--ok);}
+  .barRow{display:flex; align-items:center; gap:10px; margin:4px 0;}
+  .barRow .bn{width:230px; font-size:12.5px; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .barRow .bTrack{flex:1; height:10px; background:#e7eae6; border-radius:5px; overflow:hidden; display:flex;}
+  .barRow .bp{font-size:11.5px; width:44px; text-align:right; color:var(--muted); flex:none;}
+  .rCard{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:16px;}
+  .rCard h3{font-size:14px; margin-bottom:10px;}
+  .miss{font-size:12.5px; padding:3px 0 3px 10px; border-left:3px solid var(--pending); margin:3px 0; color:var(--ink);}
+  .miss.f{border-left-color:var(--fail); background:#fdf3f3;}
+  .miss small{color:var(--muted);}
+  .bigPct{font-size:40px; font-weight:700;}
+  @media print{
+    header, .legend, .tabs, .toolbar, #flowView, #auditView{display:none !important;}
+    body{height:auto; overflow:visible; background:#fff;}
+    #reportView{display:block !important; overflow:visible; padding:0;}
+    .rCard{break-inside:avoid; border-color:#ccc;}
+    button{display:none !important;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Sales Pipeline — Reputation Pros</h1>
+    <div class="sub">Inbound lead flow · Fillout → HubSpot/GHL → Slack → Stripe · HubSpot audit tool</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" id="tabFlow">🗺 Flow chart</div>
+    <div class="tab" id="tabAudit">✅ Audit checklist</div>
+    <div class="tab" id="tabReport">📄 Report</div>
+  </div>
+  <div class="toolbar">
+    <span id="saveStatus" style="font-size:12px; font-weight:600; cursor:default;"></span>
+    <button id="btnConnect" title="Click a source step, then a target step">🔗 Connect steps</button>
+    <button id="btnAdd">＋ Add step</button>
+    <input type="text" id="edgeLabel" placeholder="Connection label…" style="display:none; font:inherit; font-size:12.5px; padding:6px 10px; border:1px solid var(--border); border-radius:8px; width:170px;">
+    <button id="btnDelEdge" class="danger" style="display:none">Delete connection</button>
+    <button id="btnExport">⬇ Export JSON</button>
+    <button id="btnImport">⬆ Import JSON</button>
+    <input type="file" id="fileImport" accept=".json" style="display:none">
+    <button id="btnReset">↺ Reset</button>
+  </div>
+</header>
+<div class="legend">
+  <span><span class="dot d-auto"></span>Automated</span>
+  <span><span class="dot d-man"></span>Manual</span>
+  <span><span class="dot d-mix"></span>Mixed</span>
+  <span><span class="dot d-end"></span>Exit / negative close</span>
+  <span style="margin-left:14px">Node dot: <b style="color:var(--ok)">●</b> Works · <b style="color:var(--warn)">●</b> Issues · <b style="color:var(--fail)">●</b> Broken · <b style="color:var(--pending)">●</b> Not verified</span>
+  <span style="margin-left:auto">💡 Checkbox = verified working · ✕ = missing/broken · blank = not audited yet</span>
+</div>
+<div id="main">
+  <div id="flowView">
+    <div id="canvasWrap">
+      <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M1 1L9 5L1 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <g id="vp"></g>
+      </svg>
+      <div id="hud">
+        <button id="zIn">＋</button><button id="zOut">－</button><button id="zFit" title="Fit all">⤢</button>
+      </div>
+      <div id="zoomLbl">100%</div>
+      <div id="tip"></div>
+    </div>
+    <aside id="panel">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <h2 id="pTitle">Step</h2>
+        <button id="pClose" style="padding:2px 9px;">✕</button>
+      </div>
+      <span class="badge" id="pBadge"></span><span class="badge" id="pStatusBadge"></span>
+      <label>Step name</label>
+      <input type="text" id="pName">
+      <label>Type</label>
+      <select id="pType">
+        <option value="auto">Automated</option>
+        <option value="man">Manual</option>
+        <option value="mix">Mixed</option>
+        <option value="end">Exit / close</option>
+      </select>
+      <label>Owner / tool</label>
+      <input type="text" id="pOwner">
+      <label>Audit status</label>
+      <select id="pStatus">
+        <option value="pending">⏳ Not verified</option>
+        <option value="ok">✅ Works as expected</option>
+        <option value="issue">⚠️ Works with issues</option>
+        <option value="fail">❌ Broken / missing</option>
+      </select>
+      <label>📥 Information required</label>
+      <textarea id="pNeeds"></textarea>
+      <div class="hint">One item per line — checkboxes live in the Audit tab</div>
+      <label>📤 Information generated</label>
+      <textarea id="pGen"></textarea>
+      <div class="hint">One item per line</div>
+      <div class="row">
+        <button id="pDelete" class="danger" style="flex:1">🗑 Delete step</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="auditView">
+    <div class="summary" id="summary"></div>
+    <div style="margin-bottom:14px; display:flex; gap:8px;">
+      <button id="btnExpandAll">Expand all</button>
+      <button id="btnCollapseAll">Collapse all</button>
+    </div>
+    <div class="auditSection" id="toolsSection">
+      <div class="auditHead" data-toggle="toolsSection">
+        <span class="chev">▶</span>
+        <h3>🧰 Tools & integrations inventory</h3>
+        <span class="pct" id="toolsProg"></span>
+      </div>
+      <div class="auditBody" id="toolsBody"></div>
+    </div>
+    <div id="stepsAudit"></div>
+  </div>
+
+  <div id="reportView">
+    <div style="display:flex; gap:8px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
+      <button id="btnDownloadMd">⬇ Download report (.md)</button>
+      <button id="btnPrint">🖨 Print / save as PDF</button>
+      <span style="font-size:12px; color:var(--muted)">The report updates live from the audit tab</span>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+</div>
+<div id="modal" style="display:none; position:fixed; inset:0; background:rgba(20,25,22,.45); z-index:50; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:14px; padding:20px 22px; width:340px; max-width:92vw; box-shadow:0 12px 40px rgba(0,0,0,.2);">
+    <div id="modalMsg" style="font-size:14px; line-height:1.5; margin-bottom:16px;"></div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button id="modalCancel">Cancel</button>
+      <button id="modalOk" style="background:#1f2420; color:#fff; border-color:#1f2420;">Confirm</button>
+    </div>
+  </div>
+</div>
+<script>
+const NODE_W = 216, NODE_H = 62;
+const COLORS = {
+  auto:{fill:'var(--auto-fill)', line:'var(--auto-line)', text:'var(--auto-text)', lbl:'Automated'},
+  man :{fill:'var(--man-fill)',  line:'var(--man-line)',  text:'var(--man-text)',  lbl:'Manual'},
+  mix :{fill:'var(--mix-fill)',  line:'var(--mix-line)',  text:'var(--mix-text)',  lbl:'Mixed'},
+  end :{fill:'var(--end-fill)',  line:'var(--end-line)',  text:'var(--end-text)',  lbl:'Exit / close'}
+};
+const STATUS = {
+  pending:{c:'var(--pending)', lbl:'Not verified', cls:'s-pending', md:'⏳ Not verified'},
+  ok:{c:'var(--ok)', lbl:'Works', cls:'s-ok', md:'✅ Works'},
+  issue:{c:'var(--warn)', lbl:'Issues', cls:'s-issue', md:'⚠️ Issues'},
+  fail:{c:'var(--fail)', lbl:'Broken', cls:'s-fail', md:'❌ Broken'}
+};
+
+/* needs / gen items support group headers: strings starting with "##" render as a group label (not checkable) */
+const DEFAULT_NODES = [
+{id:'form', x:70, y:40, t:'auto', name:'1a. Fillout form', owner:'Prospect + HubSpot', tools:['Fillout','HubSpot','Slack','Chatbot SMS'],
+ needs:['## Form fields','First name','Last name','Phone number','Email','Time zone','Reputation type: individual or business','Reaching out on behalf of: myself / someone else','Optional Zoom call scheduling','Thank-you page redirect works'],
+ gen:['## HubSpot records','Contact created automatically','Deal created automatically (campaign term name)',
+ '## Contact properties auto-filled','First name','Last name','Phone number','Email','Time zone','Contact owner','Original traffic source','Final acquisition channel/source','UTM information (per source)','Reputation type needed','Reaching out on behalf of','Appointment owner (if booked)','Appointment status (if booked)','Lead status = Open',
+ '## Deal properties','Amount + MRR defaults to $3k','Lead source syncs with contact (final acquisition channel/source)',
+ '## Automations fired','Confirmation email to client + owner','Chatbot SMS conversation starts',
+ '## Slack #new-leads notification contains','Appointment time','Lead name','Owner name','Email','HubSpot contact link','Lead source','Cancel link','Reschedule link']},
+{id:'offline', x:430, y:40, t:'man', name:'1b. Offline lead', owner:'Sales Rep + SDR', tools:['Slack','GoHighLevel'],
+ needs:['## Sales Rep posts in #new-leads','First name','Last name','Email','Phone number','Lead source (Offline-Outbound / Offline-Inbound-Referral)','Referrer specified if referral','Additional notes'],
+ gen:['## SDR in GoHighLevel','Opportunity created (Add Opportunity)','Contact information entered','Lead placed in correct pipeline stage']},
+{id:'qual', x:250, y:190, t:'auto', name:'2. SMS qualification', owner:'Chatbot SMS', tools:['Chatbot SMS','Slack'],
+ needs:['Chatbot triggers immediately after scheduling','Qualifying questions sent via SMS','Lead responses captured'],
+ gen:['## Slack summary (on completion or 24h before call)','Summary posted to Slack','Qualified / not qualified verdict','Likelihood-to-close score','Additional case info included']},
+{id:'noresp', x:560, y:190, t:'man', name:'2b. No response (5h)', owner:'SDR (direct call)', tools:['Phone'],
+ needs:['5-hour no-response condition is detected/flagged','Lead time zone confirmed BEFORE calling'],
+ gen:['SDR calls the lead directly','Qualification confirmed manually']},
+{id:'confirm', x:250, y:345, t:'auto', name:'3. Consultation confirmed', owner:'Email workflow + Chatbot', tools:['HubSpot email workflow','Chatbot SMS','Google Calendar','YouTube'],
+ needs:['SDR moves lead to Consultation Confirmed stage'],
+ gen:['## Confirmation messages','Confirmation email sent','Confirmation SMS sent',
+ '## Message contents','Appointment date','Appointment time','Google Calendar link','Meeting details','Consultation overview in email','YouTube explainer video linked']},
+{id:'notsql', x:565, y:345, t:'end', name:'Lost → Not SQL', owner:'Automation', tools:['HubSpot email workflow','GoHighLevel'],
+ needs:['SDR moves lead to Lost → Not SQL'],
+ gen:['Appointment cancelled automatically','Rejection email sent ("may not be the right fit")']},
+{id:'consult', x:250, y:490, t:'man', name:'4. Consultation (Zoom)', owner:'Sales Rep', tools:['Zoom'],
+ needs:['Chatbot qualification summary available to Sales Rep','Lead case context available'],
+ gen:['Client situation and goals reviewed','Online reputation issues reviewed','Suppression strategy explained','Positive content promotion outlined']},
+{id:'status', x:250, y:625, t:'man', name:'5. Update appt status', owner:'Sales Rep → SDR (≤15 min)', tools:['GoHighLevel','Slack'],
+ needs:['Sales Rep marks outcome (GHL calendar or Slack)','SDR updates status within 15 minutes'],
+ gen:['Showed → lead auto-moves to Consultation Complete','No Show → lead auto-moves to No Show']},
+{id:'complete', x:95, y:770, t:'man', name:'Consultation complete', owner:'Sales Rep (takes ownership)', tools:['GoHighLevel'],
+ needs:['"Showed" status set in GHL'],
+ gen:['Ownership transferred to Sales Rep','Ongoing communication with prospect','Questions addressed','Proposal preparation started']},
+{id:'noshow', x:520, y:770, t:'mix', name:'6. No-show recovery', owner:'System + Chatbot + SDR', tools:['HubSpot email workflow','Chatbot SMS','Phone'],
+ needs:['"No Show" status set in GHL'],
+ gen:['Automatic email: "Sorry we missed each other"','Reschedule link included in email','Chatbot SMS follow-ups during recovery period','SDR calls once per day × 5 business days']},
+{id:'ghosted', x:555, y:915, t:'end', name:'Closed → Ghosted', owner:'Automation (nurture)', tools:['HubSpot email workflow'],
+ needs:['5 business days with no lead response'],
+ gen:['Lead moved to Closed → Ghosted','Nurture sequence starts','Emails every 5 business days × 5 weeks']},
+{id:'proposal', x:95, y:915, t:'man', name:'7. Proposal sent', owner:'Sales Rep + SDR', tools:['GoHighLevel','Slack'],
+ needs:['Service tier identified on the call','Proposal sent within 24–48 h'],
+ gen:['Proposal sent to client','Sales Rep notifies SDR','SDR moves stage to Proposal Sent','Weekly SDR follow-up until signed/declined/unresponsive','Follow-up coordinated with Sales Rep first']},
+{id:'delayed', x:430, y:1055, t:'man', name:'Prospect delays', owner:'SDR', tools:['GoHighLevel'],
+ needs:['Specific follow-up date given by client','If vague → moved to Lost → Abandoned'],
+ gen:['Reminder task created on opportunity card','Follow-up date entered','Task assigned to SDR (notification)','Abandoned sequence triggers for vague delays']},
+{id:'approved', x:95, y:1060, t:'mix', name:'8. Proposal approved', owner:'Sales Rep + SDR + System', tools:['Slack','GoHighLevel'],
+ needs:['## Slack post in #client-onboarding-submissions','Client first name','Client last name','Service tier','Total deal value','If offline: phone number','If offline: email','If offline: source + referrer'],
+ gen:['SDR adds service tier to opportunity card','SDR adds opportunity value','Stage moved to Proposal Approved','System auto-marks deal as Closed Won']},
+{id:'invoice', x:95, y:1205, t:'mix', name:'9. Stripe invoice', owner:'Stripe + Project Manager', tools:['Stripe','Slack'],
+ needs:['Deal reaches Proposal Approved stage'],
+ gen:['## Automatic','Draft invoice generated in Stripe','Slack notification posted',
+ '## Slack notification contains','Client name','Product purchased','Stripe invoice link','Approval options',
+ '## Manual','Invoice approved by PM in Slack']},
+{id:'onboard', x:95, y:1350, t:'man', name:'10. Onboarding', owner:'Project Manager (Thiane)', tools:['GoHighLevel','Stripe'],
+ needs:['Invoice approved','Payment verified'],
+ gen:['Client moved to Active Clients Pipeline','Ownership transferred to PM','Onboarding process begins','No further SDR action required']}
+];
+
+const DEFAULT_EDGES = [
+{f:'form', to:'qual', l:''},
+{f:'offline', to:'qual', l:''},
+{f:'qual', to:'confirm', l:'Qualified (SQL)'},
+{f:'qual', to:'notsql', l:'Not qualified'},
+{f:'qual', to:'noresp', l:'No response 5h'},
+{f:'noresp', to:'confirm', l:'Qualifies'},
+{f:'noresp', to:'notsql', l:'Does not qualify'},
+{f:'confirm', to:'consult', l:''},
+{f:'consult', to:'status', l:''},
+{f:'status', to:'complete', l:'Showed'},
+{f:'status', to:'noshow', l:'No show'},
+{f:'noshow', to:'consult', l:'Reschedules'},
+{f:'noshow', to:'ghosted', l:'5 days no response'},
+{f:'complete', to:'proposal', l:''},
+{f:'proposal', to:'approved', l:'Client accepts'},
+{f:'proposal', to:'delayed', l:'Asks to follow up later'},
+{f:'delayed', to:'proposal', l:'Date arrives'},
+{f:'approved', to:'invoice', l:''},
+{f:'invoice', to:'onboard', l:'Invoice approved'}
+];
+
+const DEFAULT_TOOLS = [
+{name:'Fillout form (reputationpros.fillout.com/intake)', items:[
+ 'Form loads correctly','Form submits successfully','Info-only submission (no call) works','Optional Zoom call scheduling works','Thank-you page redirect works']},
+{name:'HubSpot — Contact + Deal auto-creation', items:[
+ 'Contact created automatically on submit','Contact name = person filling the form','Deal created automatically','Deal name = campaign term name']},
+{name:'HubSpot — Contact properties mapping', items:[
+ 'First name','Last name','Phone number','Email','Time zone','Contact owner','Original traffic source','Final acquisition channel/source','UTM information (per source)','Reputation type needed (individual/business)','Reaching out on behalf of','Appointment owner (if booked)','Appointment status (if booked)','Lead status = Open']},
+{name:'HubSpot — Deal properties', items:[
+ 'Amount + MRR defaults to $3k','Lead source syncs with contact (final acquisition channel/source)']},
+{name:'HubSpot — Confirmation email workflow', items:[
+ 'Email sends to client','Email sends to owner','Correct template and links']},
+{name:'HubSpot — No-show recovery email', items:[
+ 'Triggers on No Show status','"Sorry we missed each other" copy','Reschedule link works']},
+{name:'HubSpot — Not-SQL rejection automation', items:[
+ 'Appointment cancels automatically','Rejection email sends','Copy explains "may not be the right fit"']},
+{name:'HubSpot — Ghosted nurture sequence', items:[
+ 'Triggers after 5 business days with no response','Emails send every 5 business days','Sequence runs for 5 weeks']},
+{name:'HubSpot — Abandoned sequence', items:[
+ 'Lead moves to Lost → Abandoned','Abandoned sequence enrolls automatically']},
+{name:'Chatbot SMS (Intuitive)', items:[
+ 'SMS chat starts on form submit','Qualifying questions send after scheduling','Slack summary posts (on completion or 24h before call)','Qualified / not qualified verdict included','Likelihood-to-close score included','Confirmation SMS sends','No-show SMS follow-ups send']},
+{name:'Slack #new-leads notifications', items:[
+ 'Notification posts on new lead','Appointment time','Lead name','Owner name','Email','HubSpot contact link','Lead source','Cancel link','Reschedule link']},
+{name:'Slack #client-onboarding-submissions', items:[
+ 'Closed-won handoff posts arrive','Invoice approval works in channel']},
+{name:'GoHighLevel — Lead Management / Sales Pipeline', items:[
+ 'All SOP pipeline stages exist','Add Opportunity works','Appointment status Showed → auto-move to Consultation Complete','Appointment status No Show → auto-move to No Show','Proposal Approved → auto Closed Won','Reminder tasks with dates + assignment work']},
+{name:'Stripe — Invoicing automation', items:[
+ 'Draft invoice auto-generates on Proposal Approved','Slack notification: client name','Slack notification: product purchased','Slack notification: Stripe invoice link','Slack notification: approval options']},
+{name:'Google Calendar', items:[
+ 'Calendar link included in confirmation','Calendar link works']},
+{name:'YouTube explainer video', items:[
+ 'Video linked in confirmation email','Video plays and is current']},
+{name:'HubSpot ↔ GHL sync', items:[
+ 'Lead source syncs Contact ↔ Deal','Pipeline stages consistent across both systems']}
+];
+
+let nodes = JSON.parse(JSON.stringify(DEFAULT_NODES));
+let edges = JSON.parse(JSON.stringify(DEFAULT_EDGES));
+let audit = {steps:{}, tools:{}};
+
+/* ---------- Shared state (Upstash Redis via /api/state) ---------- */
+const saveStatusEl = document.getElementById('saveStatus');
+function setSaveStatus(s){
+  if (s === 'saving'){ saveStatusEl.textContent = 'Guardando…'; saveStatusEl.style.color = 'var(--muted)'; saveStatusEl.style.cursor = 'default'; }
+  else if (s === 'saved'){ saveStatusEl.textContent = 'Guardado ✓'; saveStatusEl.style.color = 'var(--ok)'; saveStatusEl.style.cursor = 'default'; }
+  else if (s === 'error'){ saveStatusEl.textContent = 'Error al guardar (reintenta)'; saveStatusEl.style.color = 'var(--fail)'; saveStatusEl.style.cursor = 'pointer'; }
+  else { saveStatusEl.textContent = ''; }
+}
+let saveTimer = null, retryTimer = null, dirty = false;
+function saveState(){
+  dirty = true;
+  clearTimeout(saveTimer); clearTimeout(retryTimer);
+  setSaveStatus('saving');
+  saveTimer = setTimeout(doSave, 1500);
+}
+async function doSave(){
+  try{
+    const r = await fetch('/api/state', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nodes, edges, audit})
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    dirty = false;
+    setSaveStatus('saved');
+  } catch(e){
+    setSaveStatus('error');
+    retryTimer = setTimeout(doSave, 5000);
+  }
+}
+saveStatusEl.addEventListener('click', () => {
+  if (dirty){ clearTimeout(saveTimer); clearTimeout(retryTimer); setSaveStatus('saving'); doSave(); }
+});
+window.addEventListener('pagehide', () => {
+  if (dirty && navigator.sendBeacon){
+    clearTimeout(saveTimer); clearTimeout(retryTimer);
+    navigator.sendBeacon('/api/state', new Blob([JSON.stringify({nodes, edges, audit})], {type:'application/json'}));
+    dirty = false;
+  }
+});
+async function loadState(){
+  try{
+    const r = await fetch('/api/state', {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (d && Array.isArray(d.nodes) && Array.isArray(d.edges) && d.audit && typeof d.audit === 'object'){
+      nodes = d.nodes; edges = d.edges; audit = d.audit;
+      selectedNode = null; selectedEdge = null; closePanel();
+      fitAll(); renderAudit(); renderReport();
+      showTip('Estado compartido cargado ✓');
+    }
+  } catch(e){ /* sin API (local) o Redis vacío: se quedan los defaults */ }
+}
+
+function stepAudit(id){ if (!audit.steps[id]) audit.steps[id] = {status:'pending', notes:'', checks:{}}; return audit.steps[id]; }
+function toolAudit(name){
+  if (!audit.tools[name] || !audit.tools[name].checks) audit.tools[name] = {checks:{}, notes:(audit.tools[name] && audit.tools[name].notes) || ''};
+  return audit.tools[name];
+}
+function toolStats(t){
+  const ta = toolAudit(t.name);
+  let pass = 0, fail = 0;
+  t.items.forEach((_, i) => { if (ta.checks[i] === true) pass++; else if (ta.checks[i] === false) fail++; });
+  const total = t.items.length;
+  return {total, pass, fail, pending: total - pass - fail, pct: total ? Math.round(pass/total*100) : 0};
+}
+function isGroup(t){ return typeof t === 'string' && t.startsWith('##'); }
+function checkables(n){
+  const out = [];
+  n.needs.forEach((t,i) => { if (!isGroup(t)) out.push({key:'n'+i, txt:t, side:'required'}); });
+  n.gen.forEach((t,i) => { if (!isGroup(t)) out.push({key:'g'+i, txt:t, side:'generated'}); });
+  return out;
+}
+function stepStats(n){
+  const items = checkables(n), sa = stepAudit(n.id);
+  let pass = 0, fail = 0;
+  items.forEach(it => { if (sa.checks[it.key] === true) pass++; else if (sa.checks[it.key] === false) fail++; });
+  const total = items.length;
+  return {total, pass, fail, pending: total - pass - fail, pct: total ? Math.round(pass/total*100) : 0};
+}
+
+const svg = document.getElementById('svg');
+const vp = document.getElementById('vp');
+let view = {x:0, y:0, s:1};
+let selectedNode = null, selectedEdge = null, connectMode = false, connSrc = null;
+
+function byId(id){ return nodes.find(n => n.id === id); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function edgePath(a, b){
+  const ax = a.x + NODE_W/2, ay = a.y + NODE_H;
+  const bx = b.x + NODE_W/2, by = b.y;
+  if (by > ay + 14){
+    const dy = Math.max(30, (by - ay) * .5);
+    return {d:`M ${ax} ${ay} C ${ax} ${ay+dy}, ${bx} ${by-dy}, ${bx} ${by-6}`, mx:(ax+bx)/2, my:(ay+by)/2};
+  }
+  const asx = a.x + (b.x > a.x ? NODE_W : 0), asy = a.y + NODE_H/2;
+  const bsx = b.x + (b.x > a.x ? 0 : NODE_W), bsy = b.y + NODE_H/2;
+  const dx = Math.max(45, Math.abs(bsx - asx) * .45) * (b.x > a.x ? 1 : -1);
+  return {d:`M ${asx} ${asy} C ${asx+dx} ${asy}, ${bsx-dx} ${bsy}, ${bsx + (b.x > a.x ? -6 : 6)} ${bsy}`, mx:(asx+bsx)/2, my:(asy+bsy)/2 - 10};
+}
+
+function render(){
+  let h = '';
+  edges.forEach((e, i) => {
+    const a = byId(e.f), b = byId(e.to);
+    if (!a || !b) return;
+    const p = edgePath(a, b);
+    const col = COLORS[a.t].line;
+    const sel = selectedEdge === i ? ' selected' : '';
+    h += `<path class="edge-hit" d="${p.d}" data-edge="${i}"></path>`;
+    h += `<path class="edge-line${sel}" d="${p.d}" stroke="${col}" marker-end="url(#arr)"></path>`;
+    if (e.l){
+      const w = e.l.length * 5.6 + 10;
+      h += `<rect class="edge-lbl-bg" x="${p.mx - w/2}" y="${p.my - 9}" width="${w}" height="16" rx="8"></rect>`;
+      h += `<text class="edge-lbl" x="${p.mx}" y="${p.my + 3}" text-anchor="middle">${esc(e.l)}</text>`;
+    }
+  });
+  nodes.forEach(n => {
+    const c = COLORS[n.t];
+    const st = STATUS[stepAudit(n.id).status];
+    const ss = stepStats(n);
+    const cls = ['node-g'];
+    if (selectedNode === n.id) cls.push('selected');
+    if (connSrc === n.id) cls.push('connSrc');
+    const isTarget = drag && drag.type === 'connect' && drag.hover === n.id;
+    h += `<g class="${cls.join(' ')}" data-node="${n.id}">
+      <rect class="body" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="11" fill="${c.fill}" stroke="${isTarget ? '#1f2420' : c.line}" ${isTarget ? 'stroke-width="3.5" stroke-dasharray="7 4"' : ''}></rect>
+      <text x="${n.x + 14}" y="${n.y + 24}" font-size="13.5" font-weight="600" fill="${c.text}">${esc(n.name.length > 26 ? n.name.slice(0,25) + '…' : n.name)}</text>
+      <text x="${n.x + 14}" y="${n.y + 43}" font-size="10.5" fill="${c.text}" opacity=".78">${esc(n.owner.length > 27 ? n.owner.slice(0,26) + '…' : n.owner)} · ${ss.pct}%</text>
+      <circle cx="${n.x + NODE_W - 15}" cy="${n.y + 15}" r="6.5" fill="${st.c}" stroke="#fff" stroke-width="1.5"></circle>
+    </g>`;
+  });
+  /* temp connection line while dragging from a + handle */
+  if (drag && drag.type === 'connect'){
+    h += `<line x1="${drag.sx}" y1="${drag.sy}" x2="${drag.cx}" y2="${drag.cy}" stroke="#1f2420" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arr)" pointer-events="none"></line>`;
+  }
+  /* + handles on the selected node: drag from any of them to another step to connect */
+  const selN = byId(selectedNode);
+  if (selN && !connectMode){
+    const hs = [
+      {x:selN.x + NODE_W, y:selN.y + NODE_H/2},
+      {x:selN.x + NODE_W/2, y:selN.y + NODE_H},
+      {x:selN.x, y:selN.y + NODE_H/2},
+      {x:selN.x + NODE_W/2, y:selN.y}
+    ];
+    hs.forEach(p => {
+      h += `<g class="handle" data-handle="${selN.id}" style="cursor:crosshair">
+        <circle cx="${p.x}" cy="${p.y}" r="11" fill="#1f2420" stroke="#fff" stroke-width="2"></circle>
+        <text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="700" fill="#fff" pointer-events="none">+</text>
+      </g>`;
+    });
+  }
+  vp.innerHTML = h;
+  vp.setAttribute('transform', `translate(${view.x} ${view.y}) scale(${view.s})`);
+  document.getElementById('zoomLbl').textContent = Math.round(view.s * 100) + '%';
+  document.getElementById('btnDelEdge').style.display = selectedEdge !== null ? '' : 'none';
+  const el = document.getElementById('edgeLabel');
+  el.style.display = selectedEdge !== null ? '' : 'none';
+  if (selectedEdge !== null && document.activeElement !== el) el.value = edges[selectedEdge] ? edges[selectedEdge].l : '';
+}
+
+function toWorld(cx, cy){
+  const r = svg.getBoundingClientRect();
+  return {x:(cx - r.left - view.x) / view.s, y:(cy - r.top - view.y) / view.s};
+}
+
+let drag = null;
+function nodeAt(wx, wy, excludeId){
+  return nodes.find(n => n.id !== excludeId && wx >= n.x - 6 && wx <= n.x + NODE_W + 6 && wy >= n.y - 6 && wy <= n.y + NODE_H + 6);
+}
+svg.addEventListener('pointerdown', ev => {
+  const handle = ev.target.closest('[data-handle]');
+  const nodeG = ev.target.closest('[data-node]');
+  const edgeHit = ev.target.closest('[data-edge]');
+  if (handle){
+    const src = byId(handle.dataset.handle);
+    const w = toWorld(ev.clientX, ev.clientY);
+    drag = {type:'connect', from:src.id, sx:w.x, sy:w.y, cx:w.x, cy:w.y, hover:null};
+    svg.setPointerCapture(ev.pointerId);
+    showTip('Drag the arrow onto the step you want to connect to');
+    render(); return;
+  }
+  if (nodeG){
+    const n = byId(nodeG.dataset.node);
+    if (connectMode){
+      if (!connSrc){ connSrc = n.id; showTip('Now click the target step'); }
+      else if (connSrc !== n.id){
+        const exists = edges.findIndex(e => e.f === connSrc && e.to === n.id);
+        if (exists >= 0){ edges.splice(exists, 1); selectedEdge = null; showTip('Connection removed'); }
+        else { edges.push({f:connSrc, to:n.id, l:''}); selectedEdge = edges.length - 1; showTip('Connection created ✓ — type a label in the toolbar if you want'); }
+        connSrc = null;
+        saveState();
+      }
+      render(); return;
+    }
+    selectedEdge = null;
+    const w = toWorld(ev.clientX, ev.clientY);
+    drag = {type:'node', n, ox:w.x - n.x, oy:w.y - n.y, moved:false};
+    svg.setPointerCapture(ev.pointerId);
+  } else if (edgeHit){
+    selectedEdge = +edgeHit.dataset.edge; selectedNode = null; closePanel(); render();
+  } else {
+    selectedEdge = null; selectedNode = null; closePanel();
+    drag = {type:'pan', sx:ev.clientX, sy:ev.clientY, vx:view.x, vy:view.y};
+    svg.classList.add('panning');
+    svg.setPointerCapture(ev.pointerId);
+    render();
+  }
+});
+svg.addEventListener('pointermove', ev => {
+  if (!drag) return;
+  if (drag.type === 'connect'){
+    const w = toWorld(ev.clientX, ev.clientY);
+    drag.cx = w.x; drag.cy = w.y;
+    const t = nodeAt(w.x, w.y, drag.from);
+    drag.hover = t ? t.id : null;
+    render();
+  } else if (drag.type === 'node'){
+    const w = toWorld(ev.clientX, ev.clientY);
+    drag.n.x = Math.round(w.x - drag.ox); drag.n.y = Math.round(w.y - drag.oy);
+    drag.moved = true; render();
+  } else {
+    view.x = drag.vx + (ev.clientX - drag.sx);
+    view.y = drag.vy + (ev.clientY - drag.sy);
+    render();
+  }
+});
+svg.addEventListener('pointerup', ev => {
+  if (drag && drag.type === 'connect'){
+    const w = toWorld(ev.clientX, ev.clientY);
+    const t = nodeAt(w.x, w.y, drag.from);
+    if (t){
+      const exists = edges.findIndex(e => e.f === drag.from && e.to === t.id);
+      if (exists >= 0){ selectedEdge = exists; showTip('These steps are already connected — edit the label or delete it in the toolbar'); }
+      else { edges.push({f:drag.from, to:t.id, l:''}); selectedEdge = edges.length - 1; showTip('Connection created ✓ — type a label in the toolbar if you want'); saveState(); }
+      selectedNode = null; closePanel();
+    } else showTip('Drop cancelled — release on top of a step to connect');
+    drag = null; render(); return;
+  }
+  if (drag && drag.type === 'node' && !drag.moved) openPanel(drag.n.id);
+  if (drag && drag.type === 'node' && drag.moved) saveState();
+  drag = null; svg.classList.remove('panning');
+});
+svg.addEventListener('dblclick', ev => {
+  const nodeG = ev.target.closest('[data-node]');
+  if (nodeG){
+    openPanel(nodeG.dataset.node);
+    const inp = document.getElementById('pName');
+    inp.focus(); inp.select();
+  }
+});
+svg.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  zoomAt(ev.clientX, ev.clientY, ev.deltaY < 0 ? 1.12 : 1/1.12);
+}, {passive:false});
+
+function zoomAt(cx, cy, f){
+  const r = svg.getBoundingClientRect();
+  const ns = Math.min(2.5, Math.max(.25, view.s * f));
+  const k = ns / view.s;
+  view.x = (cx - r.left) - k * ((cx - r.left) - view.x);
+  view.y = (cy - r.top) - k * ((cy - r.top) - view.y);
+  view.s = ns; render();
+}
+document.getElementById('zIn').onclick = () => { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width/2, r.top + r.height/2, 1.2); };
+document.getElementById('zOut').onclick = () => { const r = svg.getBoundingClientRect(); zoomAt(r.left + r.width/2, r.top + r.height/2, 1/1.2); };
+document.getElementById('zFit').onclick = fitAll;
+function fitAll(){
+  const minX = Math.min(...nodes.map(n => n.x)) - 40, maxX = Math.max(...nodes.map(n => n.x + NODE_W)) + 40;
+  const minY = Math.min(...nodes.map(n => n.y)) - 40, maxY = Math.max(...nodes.map(n => n.y + NODE_H)) + 40;
+  const r = svg.getBoundingClientRect();
+  if (r.width === 0) return;
+  view.s = Math.min(r.width / (maxX - minX), r.height / (maxY - minY), 1.4);
+  view.x = (r.width - (maxX - minX) * view.s) / 2 - minX * view.s;
+  view.y = (r.height - (maxY - minY) * view.s) / 2 - minY * view.s;
+  render();
+}
+
+const btnConnect = document.getElementById('btnConnect');
+btnConnect.onclick = () => {
+  connectMode = !connectMode; connSrc = null;
+  btnConnect.classList.toggle('active', connectMode);
+  svg.classList.toggle('connectMode', connectMode);
+  showTip(connectMode ? 'Connect mode: click source → click target. Clicking an already-connected pair removes that connection.' : 'Connect mode off');
+  render();
+};
+document.getElementById('btnDelEdge').onclick = () => {
+  if (selectedEdge !== null){ edges.splice(selectedEdge, 1); selectedEdge = null; render(); saveState(); }
+};
+let addCount = 0;
+document.getElementById('btnAdd').onclick = () => {
+  const r = svg.getBoundingClientRect();
+  const c = toWorld(r.left + r.width/2, r.top + r.height/2);
+  const id = 'n' + Date.now();
+  const off = (addCount++ % 5) * 26;
+  nodes.push({id, x:Math.round(c.x - NODE_W/2) + off, y:Math.round(c.y - NODE_H/2) + off, t:'man', name:'New step ' + (nodes.length + 1), owner:'—', tools:[], needs:[], gen:[]});
+  render(); renderAudit(); openPanel(id); saveState();
+  const inp = document.getElementById('pName');
+  inp.focus(); inp.select();
+  showTip('Step added at the center of the view — rename it in the panel and drag it into place');
+};
+document.getElementById('btnExport').onclick = () => {
+  const blob = new Blob([JSON.stringify({nodes, edges, audit}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'sales-flow-audit-reputation-pros.json'; a.click();
+};
+document.getElementById('btnImport').onclick = () => document.getElementById('fileImport').click();
+document.getElementById('fileImport').onchange = ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try{
+      const d = JSON.parse(rd.result);
+      if (d.nodes) nodes = d.nodes;
+      if (d.edges) edges = d.edges;
+      if (d.audit) audit = d.audit;
+      selectedNode = null; selectedEdge = null; closePanel();
+      fitAll(); renderAudit(); renderReport(); showTip('Imported ✓'); saveState();
+    } catch(e){ showTip('Invalid JSON file'); }
+  };
+  rd.readAsText(f);
+  ev.target.value = '';
+};
+function askConfirm(msg, cb){
+  const m = document.getElementById('modal');
+  document.getElementById('modalMsg').textContent = msg;
+  m.style.display = 'flex';
+  const ok = document.getElementById('modalOk'), cancel = document.getElementById('modalCancel');
+  const close = () => { m.style.display = 'none'; ok.onclick = null; cancel.onclick = null; };
+  ok.onclick = () => { close(); cb(); };
+  cancel.onclick = close;
+}
+document.getElementById('btnReset').onclick = () => {
+  askConfirm('Reset the original flow and clear the audit? All changes will be lost.', () => {
+    nodes = JSON.parse(JSON.stringify(DEFAULT_NODES));
+    edges = JSON.parse(JSON.stringify(DEFAULT_EDGES));
+    audit = {steps:{}, tools:{}};
+    selectedNode = null; selectedEdge = null; closePanel(); fitAll(); renderAudit(); renderReport(); saveState();
+  });
+};
+document.getElementById('edgeLabel').addEventListener('input', ev => {
+  if (selectedEdge !== null && edges[selectedEdge]){ edges[selectedEdge].l = ev.target.value; render(); saveState(); }
+});
+
+/* ---------- Tabs ---------- */
+const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), report:document.getElementById('tabReport')};
+const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), report:document.getElementById('reportView')};
+function showTab(k){
+  Object.keys(tabs).forEach(x => tabs[x].classList.toggle('active', x === k));
+  views.flow.classList.toggle('hidden', k !== 'flow');
+  views.audit.classList.toggle('active', k === 'audit');
+  views.report.classList.toggle('active', k === 'report');
+  if (k === 'flow') setTimeout(fitAll, 0);
+  if (k === 'audit') renderAudit();
+  if (k === 'report') renderReport();
+}
+tabs.flow.onclick = () => showTab('flow');
+tabs.audit.onclick = () => showTab('audit');
+tabs.report.onclick = () => showTab('report');
+
+/* ---------- Side panel ---------- */
+const panel = document.getElementById('panel');
+function openPanel(id){ selectedNode = id; fillPanel(byId(id)); panel.classList.add('open'); render(); }
+function fillPanel(n){
+  const c = COLORS[n.t], sa = stepAudit(n.id), st = STATUS[sa.status];
+  document.getElementById('pTitle').textContent = n.name;
+  const b = document.getElementById('pBadge');
+  b.textContent = c.lbl; b.style.background = c.fill; b.style.color = c.text; b.style.border = '1px solid ' + c.line;
+  const sb = document.getElementById('pStatusBadge');
+  sb.textContent = st.lbl; sb.style.background = '#fff'; sb.style.color = st.c; sb.style.border = '1.5px solid ' + st.c;
+  document.getElementById('pName').value = n.name;
+  document.getElementById('pType').value = n.t;
+  document.getElementById('pOwner').value = n.owner;
+  document.getElementById('pStatus').value = sa.status;
+  document.getElementById('pNeeds').value = n.needs.join('\n');
+  document.getElementById('pGen').value = n.gen.join('\n');
+}
+function closePanel(){ selectedNode = null; panel.classList.remove('open'); }
+document.getElementById('pClose').onclick = () => { closePanel(); render(); };
+document.getElementById('pName').oninput = e => { const n = byId(selectedNode); if(n){ n.name = e.target.value; document.getElementById('pTitle').textContent = n.name; render(); saveState(); } };
+document.getElementById('pType').onchange = e => { const n = byId(selectedNode); if(n){ n.t = e.target.value; fillPanel(n); render(); saveState(); } };
+document.getElementById('pOwner').oninput = e => { const n = byId(selectedNode); if(n){ n.owner = e.target.value; render(); saveState(); } };
+document.getElementById('pStatus').onchange = e => { const n = byId(selectedNode); if(n){ stepAudit(n.id).status = e.target.value; fillPanel(n); render(); saveState(); } };
+document.getElementById('pNeeds').oninput = e => { const n = byId(selectedNode); if(n){ n.needs = e.target.value.split('\n').filter(x => x.trim()); saveState(); } };
+document.getElementById('pGen').oninput = e => { const n = byId(selectedNode); if(n){ n.gen = e.target.value.split('\n').filter(x => x.trim()); saveState(); } };
+document.getElementById('pDelete').onclick = () => {
+  if (!selectedNode) return;
+  const id = selectedNode;
+  askConfirm('Delete this step and its connections?', () => {
+    edges = edges.filter(e => e.f !== id && e.to !== id);
+    nodes = nodes.filter(n => n.id !== id);
+    closePanel(); render(); renderAudit(); saveState();
+  });
+};
+
+/* ---------- Audit tab ---------- */
+const openSections = new Set(['toolsSection']);
+
+function globalStats(){
+  let total = 0, pass = 0, fail = 0;
+  nodes.forEach(n => { const s = stepStats(n); total += s.total; pass += s.pass; fail += s.fail; });
+  let tTotal = 0, tPass = 0, tFail = 0;
+  DEFAULT_TOOLS.forEach(t => { const s = toolStats(t); tTotal += s.total; tPass += s.pass; tFail += s.fail; });
+  const allTotal = total + tTotal, allPass = pass + tPass;
+  return {total, pass, fail, pending: total - pass - fail,
+          tTotal, tPass, tFail,
+          pct: allTotal ? Math.round(allPass / allTotal * 100) : 0,
+          itemPct: total ? Math.round(pass / total * 100) : 0};
+}
+
+function renderAudit(){
+  const g = globalStats();
+  let ok = 0, issue = 0, failS = 0;
+  nodes.forEach(n => { const s = stepAudit(n.id).status; if (s === 'ok') ok++; else if (s === 'issue') issue++; else if (s === 'fail') failS++; });
+  document.getElementById('summary').innerHTML = `
+    <div class="sumCard" style="min-width:180px"><div class="num">${g.pct}%</div><div class="lbl">Overall audit completion</div>
+      <div class="progressBar" style="width:150px"><i style="width:${g.pct}%"></i></div></div>
+    <div class="sumCard"><div class="num">${g.pass}<span style="font-size:13px; color:var(--muted)">/${g.total}</span></div><div class="lbl">Data points confirmed</div></div>
+    <div class="sumCard"><div class="num" style="color:var(--fail)">${g.fail}</div><div class="lbl">Data points failing</div></div>
+    <div class="sumCard"><div class="num" style="color:var(--pending)">${g.pending}</div><div class="lbl">Not audited yet</div></div>
+    <div class="sumCard"><div class="num" style="color:var(--ok)">${ok}</div><div class="lbl">Steps working</div></div>
+    <div class="sumCard"><div class="num" style="color:var(--warn)">${issue}</div><div class="lbl">Steps w/ issues</div></div>
+    <div class="sumCard"><div class="num" style="color:var(--fail)">${failS}</div><div class="lbl">Steps broken</div></div>`;
+
+  /* tools */
+  const tb = DEFAULT_TOOLS.map((t, ti) => {
+    const ta = toolAudit(t.name), ts = toolStats(t);
+    const pctColor = ts.fail ? 'var(--fail)' : ts.pct === 100 ? 'var(--ok)' : ts.pct > 0 ? '#854F0B' : 'var(--muted)';
+    const items = t.items.map((it, ii) => {
+      const v = ta.checks[ii];
+      return `<div class="chk ${v === true ? 'checked' : ''}">
+        <input type="checkbox" data-tool="${ti}" data-titem="${ii}" ${v === true ? 'checked' : ''} title="Exists / works">
+        <span class="no ${v === false ? 'on' : ''}" data-toolfail="${ti}" data-titem="${ii}" title="Mark as missing/broken">✕</span>
+        <span>${esc(it)}</span>
+      </div>`;
+    }).join('');
+    return `<details ${ts.pass + ts.fail > 0 && ts.pending > 0 ? 'open' : ''} style="border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-top:10px; background:#fafbf9;">
+      <summary style="cursor:pointer; display:flex; align-items:center; gap:10px; flex-wrap:wrap; list-style:none;">
+        <b style="font-size:13px; flex:1; min-width:200px;">${esc(t.name)}</b>
+        <span class="progressBar" style="width:110px; margin:0;"><i style="width:${ts.pct}%; background:${ts.fail ? 'var(--warn)' : 'var(--ok)'}"></i></span>
+        <span class="pct" style="color:${pctColor}">${ts.pct}% · ${ts.pass}/${ts.total}${ts.fail ? ` · ${ts.fail} ✕` : ''}</span>
+      </summary>
+      <div style="margin-top:8px;">${items}
+      <input type="text" placeholder="Audit notes for this tool…" data-toolnote="${ti}" value="${esc(ta.notes)}" style="display:block; width:100%; margin-top:8px; font-size:12px; padding:5px 9px; border:1px solid var(--border); border-radius:6px;"></div>
+    </details>`;
+  }).join('');
+  document.getElementById('toolsBody').innerHTML = `<div style="padding-top:4px; padding-bottom:4px;">${tb}</div>`;
+  document.getElementById('toolsProg').textContent = `${g.tTotal ? Math.round(g.tPass/g.tTotal*100) : 0}% · ${g.tPass}/${g.tTotal} confirmed${g.tFail ? ` · ${g.tFail} failing` : ''}`;
+  document.getElementById('toolsSection').classList.toggle('open', openSections.has('toolsSection'));
+
+  /* steps */
+  document.getElementById('stepsAudit').innerHTML = nodes.map(n => {
+    const c = COLORS[n.t], sa = stepAudit(n.id), st = STATUS[sa.status], ss = stepStats(n);
+    const renderList = arr => arr.map((t, i) => {
+      const key = (arr === n.needs ? 'n' : 'g') + i;
+      if (isGroup(t)) return `<div class="grpLbl">${esc(t.replace(/^##\s*/, ''))}</div>`;
+      const v = sa.checks[key];
+      return `<div class="chk ${v === true ? 'checked' : ''}">
+        <input type="checkbox" data-step="${n.id}" data-key="${key}" ${v === true ? 'checked' : ''} title="Exists / works">
+        <span class="no ${v === false ? 'on' : ''}" data-failstep="${n.id}" data-key="${key}" title="Mark as missing/broken">✕</span>
+        <span>${esc(t)}</span>
+      </div>`;
+    }).join('');
+    return `<div class="auditSection ${openSections.has(n.id) ? 'open' : ''}" id="sec-${n.id}">
+      <div class="auditHead" data-toggle="${n.id}">
+        <span class="chev">▶</span>
+        <h3>${esc(n.name)}</h3>
+        <span class="typeBadge" style="background:${c.fill}; color:${c.text}; border-color:${c.line}">${c.lbl}</span>
+        <span class="pct">${ss.pass}/${ss.total} · ${ss.pct}%${ss.fail ? ` · <b style="color:var(--fail)">${ss.fail} ✕</b>` : ''}</span>
+        ${n.tools && n.tools.length ? n.tools.map(t => `<span class="toolTag">${esc(t)}</span>`).join('') : ''}
+        <select class="statusSel ${st.cls}" data-status="${n.id}">
+          <option value="pending" ${sa.status==='pending'?'selected':''}>⏳ Not verified</option>
+          <option value="ok" ${sa.status==='ok'?'selected':''}>✅ Works</option>
+          <option value="issue" ${sa.status==='issue'?'selected':''}>⚠️ Issues</option>
+          <option value="fail" ${sa.status==='fail'?'selected':''}>❌ Broken</option>
+        </select>
+      </div>
+      <div class="auditBody">
+        <div class="ownerLine">Owner / tool: <b>${esc(n.owner)}</b></div>
+        <div class="colGrid">
+          <div><h4>📥 Information required — check if it exists</h4>${renderList(n.needs) || '<small style="color:var(--muted)">—</small>'}</div>
+          <div><h4>📤 Information generated — check if it works</h4>${renderList(n.gen) || '<small style="color:var(--muted)">—</small>'}</div>
+        </div>
+        <textarea class="notes" placeholder="Audit findings for this step (what's broken, what to fix in HubSpot/GHL, owners)…" data-notes="${n.id}">${esc(sa.notes)}</textarea>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btnExpandAll').onclick = () => { openSections.add('toolsSection'); nodes.forEach(n => openSections.add(n.id)); renderAudit(); };
+document.getElementById('btnCollapseAll').onclick = () => { openSections.clear(); renderAudit(); };
+
+document.getElementById('auditView').addEventListener('click', ev => {
+  const toggle = ev.target.closest('[data-toggle]');
+  if (toggle && !ev.target.closest('select, input, textarea, .no')){
+    const id = toggle.dataset.toggle;
+    openSections.has(id) ? openSections.delete(id) : openSections.add(id);
+    document.getElementById(id === 'toolsSection' ? 'toolsSection' : 'sec-' + id).classList.toggle('open');
+    return;
+  }
+  const failStep = ev.target.closest('[data-failstep]');
+  if (failStep){
+    const sa = stepAudit(failStep.dataset.failstep), k = failStep.dataset.key;
+    sa.checks[k] = sa.checks[k] === false ? undefined : false;
+    renderAudit(); render(); saveState();
+    return;
+  }
+  const toolFail = ev.target.closest('[data-toolfail]');
+  if (toolFail){
+    const ta = toolAudit(DEFAULT_TOOLS[+toolFail.dataset.toolfail].name);
+    const k = +toolFail.dataset.titem;
+    ta.checks[k] = ta.checks[k] === false ? undefined : false;
+    renderAudit(); saveState();
+  }
+});
+document.getElementById('auditView').addEventListener('change', ev => {
+  if (ev.target.matches('[data-step]')){
+    const sa = stepAudit(ev.target.dataset.step);
+    sa.checks[ev.target.dataset.key] = ev.target.checked ? true : undefined;
+    renderAudit(); render(); saveState();
+  } else if (ev.target.matches('[data-status]')){
+    stepAudit(ev.target.dataset.status).status = ev.target.value;
+    renderAudit(); render(); saveState();
+  } else if (ev.target.matches('[data-tool]')){
+    const ta = toolAudit(DEFAULT_TOOLS[+ev.target.dataset.tool].name);
+    ta.checks[+ev.target.dataset.titem] = ev.target.checked ? true : undefined;
+    renderAudit(); saveState();
+  }
+});
+document.getElementById('auditView').addEventListener('input', ev => {
+  if (ev.target.matches('[data-notes]')){ stepAudit(ev.target.dataset.notes).notes = ev.target.value; saveState(); }
+  if (ev.target.matches('[data-toolnote]')){ toolAudit(DEFAULT_TOOLS[+ev.target.dataset.toolnote].name).notes = ev.target.value; saveState(); }
+});
+
+/* ---------- Report tab ---------- */
+function itemLabel(n, key){
+  const arr = key[0] === 'n' ? n.needs : n.gen;
+  const idx = +key.slice(1);
+  let group = '';
+  for (let i = idx - 1; i >= 0; i--){ if (isGroup(arr[i])){ group = arr[i].replace(/^##\s*/, ''); break; } }
+  return {txt: arr[idx], group, side: key[0] === 'n' ? 'Required' : 'Generated'};
+}
+
+function renderReport(){
+  const g = globalStats();
+  const today = new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+  const barColor = g.pct >= 80 ? 'var(--ok)' : g.pct >= 50 ? 'var(--warn)' : 'var(--fail)';
+
+  let stepBars = '';
+  nodes.forEach(n => {
+    const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
+    stepBars += `<div class="barRow">
+      <span class="bn" title="${esc(n.name)}"><b style="color:${st.c}">●</b> ${esc(n.name)}</span>
+      <span class="bTrack">
+        <i style="width:${ss.pct}%; background:var(--ok); height:100%"></i>
+        <i style="width:${ss.total ? Math.round(ss.fail/ss.total*100) : 0}%; background:var(--fail); height:100%"></i>
+      </span>
+      <span class="bp">${ss.pct}%</span>
+    </div>`;
+  });
+
+  let failHtml = '', missHtml = '';
+  nodes.forEach(n => {
+    const sa = stepAudit(n.id);
+    checkables(n).forEach(it => {
+      const v = sa.checks[it.key];
+      const lbl = itemLabel(n, it.key);
+      const line = `<div class="miss ${v === false ? 'f' : ''}"><b>${esc(n.name)}</b> · <small>${lbl.side}${lbl.group ? ' → ' + esc(lbl.group) : ''}</small><br>${esc(lbl.txt)}</div>`;
+      if (v === false) failHtml += line;
+      else if (v !== true) missHtml += line;
+    });
+  });
+  let toolFailHtml = '', toolMissHtml = '', toolBars = '';
+  DEFAULT_TOOLS.forEach(t => {
+    const ta = toolAudit(t.name), ts = toolStats(t);
+    toolBars += `<div class="barRow">
+      <span class="bn" title="${esc(t.name)}">${esc(t.name)}</span>
+      <span class="bTrack">
+        <i style="width:${ts.pct}%; background:var(--ok); height:100%"></i>
+        <i style="width:${ts.total ? Math.round(ts.fail/ts.total*100) : 0}%; background:var(--fail); height:100%"></i>
+      </span>
+      <span class="bp">${ts.pct}%</span>
+    </div>`;
+    t.items.forEach((it, i) => {
+      const v = ta.checks[i];
+      const line = `<div class="miss ${v === false ? 'f' : ''}"><b>Tool: ${esc(t.name)}</b><br>${esc(it)}</div>`;
+      if (v === false) toolFailHtml += line;
+      else if (v !== true) toolMissHtml += line;
+    });
+  });
+  let notesHtml = '';
+  nodes.forEach(n => {
+    const sa = stepAudit(n.id);
+    if (sa.notes.trim()) notesHtml += `<div class="miss"><b>${esc(n.name)}</b> (${STATUS[sa.status].lbl})<br>${esc(sa.notes)}</div>`;
+  });
+  let brokenSteps = nodes.filter(n => stepAudit(n.id).status === 'fail');
+  let issueSteps = nodes.filter(n => stepAudit(n.id).status === 'issue');
+
+  document.getElementById('reportBody').innerHTML = `
+    <div class="rCard">
+      <h3>HubSpot / pipeline audit report — Reputation Pros</h3>
+      <div style="font-size:12.5px; color:var(--muted); margin-bottom:14px">Generated ${today} · Inbound Lead Processing & Sales Pipeline SOP</div>
+      <div style="display:flex; gap:28px; align-items:center; flex-wrap:wrap;">
+        <div><div class="bigPct" style="color:${barColor}">${g.pct}%</div><div style="font-size:12px; color:var(--muted)">Overall completion<br>(data points + tools confirmed)</div></div>
+        <div style="flex:1; min-width:240px;">
+          <div style="font-size:12.5px; margin-bottom:2px">Data points: <b>${g.pass}/${g.total}</b> confirmed (${g.itemPct}%) · <b style="color:var(--fail)">${g.fail} failing</b> · ${g.pending} not audited</div>
+          <div class="progressBar" style="height:10px"><i style="width:${g.itemPct}%"></i></div>
+          <div style="font-size:12.5px; margin:10px 0 2px">Tools: <b>${g.tPass}/${g.tTotal}</b> confirmed · <b style="color:var(--fail)">${g.tFail} failing</b></div>
+          <div class="progressBar" style="height:10px"><i style="width:${g.tTotal ? Math.round(g.tPass/g.tTotal*100) : 0}%"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="rCard"><h3>Completion by step</h3>${stepBars}</div>
+    <div class="rCard"><h3>Completion by tool / integration</h3>${toolBars}</div>
+    ${brokenSteps.length || issueSteps.length ? `<div class="rCard"><h3>⚠️ Steps flagged</h3>
+      ${brokenSteps.map(n => `<div class="miss f"><b>${esc(n.name)}</b> — ❌ Broken</div>`).join('')}
+      ${issueSteps.map(n => `<div class="miss" style="border-left-color:var(--warn); background:#fdf9ef"><b>${esc(n.name)}</b> — ⚠️ Works with issues</div>`).join('')}
+    </div>` : ''}
+    <div class="rCard"><h3>❌ Failing items (${g.fail + g.tFail})</h3>${failHtml + toolFailHtml || '<small style="color:var(--muted)">Nothing marked as failing yet.</small>'}</div>
+    <div class="rCard"><h3>⏳ Pending verification (${g.pending + (g.tTotal - g.tPass - g.tFail)})</h3>${(missHtml + toolMissHtml) || '<small style="color:var(--muted)">Everything has been audited. 🎉</small>'}</div>
+    ${notesHtml ? `<div class="rCard"><h3>📝 Audit notes by step</h3>${notesHtml}</div>` : ''}`;
+}
+
+function buildMarkdown(){
+  const g = globalStats();
+  const today = new Date().toISOString().slice(0,10);
+  let md = `# HubSpot / pipeline audit report — Reputation Pros\n\nGenerated: ${today}\n\n`;
+  md += `## Summary\n\n- **Overall completion: ${g.pct}%**\n- Data points confirmed: ${g.pass}/${g.total} (${g.itemPct}%)\n- Data points failing: ${g.fail}\n- Data points not audited: ${g.pending}\n- Tools confirmed: ${g.tPass}/${g.tTotal} (${g.tFail} failing)\n\n`;
+  md += `## Completion by step\n\n| Step | Status | Confirmed | % | Failing |\n|---|---|---|---|---|\n`;
+  nodes.forEach(n => {
+    const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
+    md += `| ${n.name} | ${st.md} | ${ss.pass}/${ss.total} | ${ss.pct}% | ${ss.fail} |\n`;
+  });
+  md += `\n## Completion by tool / integration\n\n| Tool | Confirmed | % | Failing |\n|---|---|---|---|\n`;
+  DEFAULT_TOOLS.forEach(t => { const ts = toolStats(t); md += `| ${t.name} | ${ts.pass}/${ts.total} | ${ts.pct}% | ${ts.fail} |\n`; });
+  md += `\n## ❌ Failing items\n\n`;
+  let any = false;
+  nodes.forEach(n => {
+    const sa = stepAudit(n.id);
+    checkables(n).forEach(it => {
+      if (sa.checks[it.key] === false){ const l = itemLabel(n, it.key); md += `- **${n.name}** (${l.side}${l.group ? ' → ' + l.group : ''}): ${l.txt}\n`; any = true; }
+    });
+  });
+  DEFAULT_TOOLS.forEach(t => { const ta = toolAudit(t.name); t.items.forEach((it, i) => { if (ta.checks[i] === false){ md += `- **Tool: ${t.name}**: ${it}\n`; any = true; } }); });
+  if (!any) md += `_None marked as failing._\n`;
+  md += `\n## ⏳ Pending verification\n\n`;
+  any = false;
+  nodes.forEach(n => {
+    const sa = stepAudit(n.id);
+    checkables(n).forEach(it => {
+      const v = sa.checks[it.key];
+      if (v !== true && v !== false){ const l = itemLabel(n, it.key); md += `- **${n.name}** (${l.side}${l.group ? ' → ' + l.group : ''}): ${l.txt}\n`; any = true; }
+    });
+  });
+  DEFAULT_TOOLS.forEach(t => { const ta = toolAudit(t.name); t.items.forEach((it, i) => { const v = ta.checks[i]; if (v !== true && v !== false){ md += `- **Tool: ${t.name}**: ${it}\n`; any = true; } }); });
+  if (!any) md += `_Everything audited._\n`;
+  let notes = '';
+  nodes.forEach(n => { const sa = stepAudit(n.id); if (sa.notes.trim()) notes += `### ${n.name} (${STATUS[sa.status].lbl})\n\n${sa.notes}\n\n`; });
+  DEFAULT_TOOLS.forEach(t => { const ta = toolAudit(t.name); if (ta.notes.trim()) notes += `### Tool: ${t.name}\n\n${ta.notes}\n\n`; });
+  if (notes) md += `\n## 📝 Audit notes\n\n${notes}`;
+  return md;
+}
+document.getElementById('btnDownloadMd').onclick = () => {
+  const blob = new Blob([buildMarkdown()], {type:'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `audit-report-reputation-pros-${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+};
+document.getElementById('btnPrint').onclick = () => { renderReport(); window.print(); };
+
+let tipTimer;
+function showTip(msg){
+  const t = document.getElementById('tip');
+  t.textContent = msg; t.style.display = 'block';
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => t.style.display = 'none', 3200);
+}
+
+window.addEventListener('resize', () => { if (!views.flow.classList.contains('hidden')) render(); });
+fitAll();
+renderAudit();
+renderReport();
+loadState();
+</script>
+</body>
+</html>
