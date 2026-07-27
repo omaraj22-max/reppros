@@ -1,6 +1,6 @@
 const KEY = 'audit-state';
 
-/* Acepta los distintos nombres que Vercel/Upstash usan segun como se cree la base */
+/* Accepts the different names Vercel/Upstash use depending on how the DB was created */
 function creds() {
   const e = process.env;
   return {
@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
   const { url, token } = creds();
   if (!url || !token) {
     return res.status(500).json({
-      error: 'Falta conectar la base de datos Redis a este proyecto de Vercel. Se buscaron las variables KV_REST_API_URL / KV_REST_API_TOKEN y UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN y ninguna existe. Conecta la base en Storage (o agregalas en Settings > Environment Variables) y vuelve a hacer Redeploy.',
+      error: 'The Redis database is not connected to this Vercel project. Looked for KV_REST_API_URL / KV_REST_API_TOKEN and UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN and none of them exist. Connect the database under Storage (or add them in Settings > Environment Variables) and redeploy.',
       found: Object.keys(process.env).filter(k => /KV_|UPSTASH|REDIS/.test(k))
     });
   }

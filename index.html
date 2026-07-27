@@ -40,7 +40,7 @@
   .brandPlate img{height:19px; display:block;}
   .hTitle{font-size:13.5px; font-weight:650; letter-spacing:-.01em; white-space:nowrap;}
   .hSub{font-size:11px; color:var(--ink2); white-space:nowrap;}
-  /* el header se va soltando piezas antes que amontonarse */
+  /* the header drops pieces instead of cramming them */
   @media (max-width:1240px){ .hSub{display:none;} nav.tabs{margin-left:16px;} }
   @media (max-width:1060px){ .brand{display:none;} .savePill span{display:none;} .savePill{padding:4px 8px;} }
   @media (max-width:900px){ .hTitle{display:none;} nav.tabs{margin-left:0;} }
@@ -121,7 +121,7 @@
   .edge-lbl-bg{fill:var(--bg); opacity:.9; pointer-events:none;}
   text{user-select:none;}
 
-  /* ---------------- Panel lateral (paso) ---------------- */
+  /* ---------------- Step side panel ---------------- */
   #panel{width:340px; min-width:340px; background:var(--panel); border-left:1px solid var(--line);
     overflow-y:auto; padding:18px 20px 24px; display:none;}
   #panel.open{display:block;}
@@ -373,16 +373,16 @@
     <button class="tab" id="tabReport">Report</button>
   </nav>
   <div class="hSpacer"></div>
-  <div class="savePill" id="saveStatus"><i></i><span>Listo</span></div>
-  <button class="iconBtn" id="btnTheme" title="Claro / oscuro">☾</button>
+  <div class="savePill" id="saveStatus"><i></i><span>Ready</span></div>
+  <button class="iconBtn" id="btnTheme" title="Light / dark">☾</button>
   <div class="menuWrap">
-    <button class="iconBtn" id="btnMenu" title="Más acciones">⋯</button>
+    <button class="iconBtn" id="btnMenu" title="More actions">⋯</button>
     <div class="menu" id="appMenu">
-      <button id="btnExport">Exportar JSON</button>
-      <button id="btnImport">Importar JSON</button>
+      <button id="btnExport">Export JSON</button>
+      <button id="btnImport">Import JSON</button>
       <input type="file" id="fileImport" accept=".json" style="display:none">
       <hr>
-      <button id="btnReset" class="danger">Reiniciar todo</button>
+      <button id="btnReset" class="danger">Reset everything</button>
     </div>
   </div>
   <button class="primaryBtn" id="btnShare">Share link</button>
@@ -395,12 +395,12 @@
         <div class="segGroup">
           <button id="btnAdd">＋ Add step</button>
           <span class="segDiv"></span>
-          <button id="btnConnect" title="Click un paso origen, luego el destino">Connect</button>
+          <button id="btnConnect" title="Click a source step, then the target">Connect</button>
         </div>
         <div class="floatPill" id="flowLegend"></div>
         <div class="edgeBar" id="edgeBar" style="display:none">
-          <input type="text" id="edgeLabel" placeholder="Etiqueta de la conexión…">
-          <button id="btnDelEdge">Eliminar</button>
+          <input type="text" id="edgeLabel" placeholder="Connection label…">
+          <button id="btnDelEdge">Delete</button>
         </div>
       </div>
       <svg id="svg" xmlns="http://www.w3.org/2000/svg">
@@ -412,11 +412,11 @@
         <g id="vp"></g>
       </svg>
       <div id="zoomHud">
-        <button id="zOut" title="Alejar">−</button>
+        <button id="zOut" title="Zoom out">−</button>
         <span id="zoomLbl" class="num">100%</span>
-        <button id="zIn" title="Acercar">+</button>
+        <button id="zIn" title="Zoom in">+</button>
         <span class="segDiv"></span>
-        <button id="zFit" title="Ajustar todo">⤢</button>
+        <button id="zFit" title="Fit all">⤢</button>
       </div>
       <div id="tip"></div>
     </div>
@@ -441,12 +441,12 @@
       </div>
 
       <div class="pLabel">Notes</div>
-      <textarea id="pNotes" class="fld" placeholder="Hallazgos de este paso: qué está roto, qué arreglar, quién…"></textarea>
+      <textarea id="pNotes" class="fld" placeholder="Findings for this step: what is broken, what to fix, who owns it…"></textarea>
 
       <button class="primaryBtn" id="pOpenChecklist" style="width:100%; height:36px; margin-top:20px;">Open in checklist</button>
 
       <details id="pAdvanced">
-        <summary>Editar el paso</summary>
+        <summary>Edit this step</summary>
         <div class="pLabel">Step name</div>
         <input type="text" id="pName" class="fld">
         <div class="pLabel">Type</div>
@@ -458,11 +458,11 @@
         </select>
         <div class="pLabel">Information required</div>
         <textarea id="pNeeds" class="fld"></textarea>
-        <div class="pHint">Un ítem por línea · usa ## para un encabezado de grupo</div>
+        <div class="pHint">One item per line · use ## for a group heading</div>
         <div class="pLabel">Information generated</div>
         <textarea id="pGen" class="fld"></textarea>
-        <div class="pHint">Un ítem por línea</div>
-        <button id="pDelete" class="dangerBtn">Eliminar este paso</button>
+        <div class="pHint">One item per line</div>
+        <button id="pDelete" class="dangerBtn">Delete this step</button>
       </details>
     </aside>
   </div>
@@ -470,7 +470,7 @@
   <div id="auditView">
     <aside class="auditNav">
       <div class="auditNavTop">
-        <input type="text" id="auditSearch" class="searchBox" placeholder="Buscar checkpoints…">
+        <input type="text" id="auditSearch" class="searchBox" placeholder="Search checkpoints…">
         <div class="filterChips" id="auditFilters">
           <button data-filter="all" class="on">All</button>
           <button data-filter="fail">Failing</button>
@@ -495,7 +495,7 @@
       <div class="wfHead">
         <div>
           <h2>Workflow audits</h2>
-          <div class="sub">Workflows de HubSpot revisados uno por uno</div>
+          <div class="sub">HubSpot workflows reviewed one by one</div>
         </div>
         <div class="wfCounts" id="wfSummary"></div>
         <button class="primaryBtn" id="wfAdd">＋ Add workflow</button>
@@ -511,15 +511,15 @@
           </tr></thead>
           <tbody id="wfBody"></tbody>
         </table>
-        <div class="wfEmpty" id="wfEmpty" style="display:none">Todavía no hay workflows.</div>
-        <button class="wfAddRow" id="wfAddRow">＋ Nueva fila</button>
+        <div class="wfEmpty" id="wfEmpty" style="display:none">No workflows yet.</div>
+        <button class="wfAddRow" id="wfAddRow">＋ New row</button>
       </div>
     </div>
   </div>
 
   <div id="reportView">
     <div class="rptBar">
-      <span class="note">El reporte se genera en vivo desde el audit</span>
+      <span class="note">The report is generated live from the audit</span>
       <span style="flex:1"></span>
       <button class="ghostBtn" id="btnDownloadMd">Download .md</button>
       <button class="primaryBtn" id="btnPrint">Print / PDF</button>
@@ -532,8 +532,8 @@
   <div class="modalCard">
     <div id="modalMsg"></div>
     <div class="modalRow">
-      <button class="ghostBtn" id="modalCancel">Cancelar</button>
-      <button class="primaryBtn" id="modalOk">Confirmar</button>
+      <button class="ghostBtn" id="modalCancel">Cancel</button>
+      <button class="primaryBtn" id="modalOk">Confirm</button>
     </div>
   </div>
 </div>
@@ -675,7 +675,7 @@ let nodes = JSON.parse(JSON.stringify(DEFAULT_NODES));
 let edges = JSON.parse(JSON.stringify(DEFAULT_EDGES));
 let audit = {steps:{}, tools:{}};
 
-/* Workflow audits: hoja editable. status: on|off · omar: checking|wip|pass|fix */
+/* Workflow audits: editable sheet. status: on|off · omar: checking|wip|pass|fix */
 const WF_OMAR = {checking:'🔍 Checking', wip:'🛠 WIP', pass:'✅ Pass', fix:'❌ Needs fix'};
 const WF_TYPE = {'':'—', contact:'Contact', deal:'Deal', company:'Company'};
 function blankWf(){ return {id:'w' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4), name:'', link:'', type:'', desc:'', status:'on', next:'', omar:'checking'}; }
@@ -687,8 +687,8 @@ const saveStatusEl = document.getElementById('saveStatus');
 const saveTextEl = saveStatusEl.querySelector('span');
 function setSaveStatus(s){
   saveStatusEl.className = 'savePill' + (s === 'saving' ? ' saving' : s === 'saved' ? ' saved' : s === 'error' ? ' err' : '');
-  saveTextEl.textContent = s === 'saving' ? 'Guardando…' : s === 'saved' ? 'Guardado' : s === 'error' ? 'Error al guardar' : 'Listo';
-  saveStatusEl.title = s === 'error' ? 'Click para reintentar ahora' : '';
+  saveTextEl.textContent = s === 'saving' ? 'Saving…' : s === 'saved' ? 'Saved' : s === 'error' ? 'Save failed' : 'Ready';
+  saveStatusEl.title = s === 'error' ? 'Click to retry now' : '';
 }
 const LS_KEY = 'audit-state-local';
 let saveTimer = null, retryTimer = null, dirty = false;
@@ -737,7 +737,7 @@ async function loadState(){
   try{
     const r = await fetch('/api/state', {cache:'no-store'});
     if (r.ok) server = await r.json();
-  } catch(e){ /* sin API (file:// o local): usamos el respaldo */ }
+  } catch(e){ /* no API (file:// or local): use the backup */ }
 
   let chosen = null, fromLocal = false;
   if (local && local.dirty && validState(local.state)){ chosen = local.state; fromLocal = true; }
@@ -751,9 +751,9 @@ async function loadState(){
     fitAll(); renderAudit(); renderReport(); renderWf();
   }
   if (fromLocal){
-    showTip('Restaurado del respaldo local — sincronizando…');
+    showTip('Restored from local backup — syncing…');
     saveState();
-  } else if (chosen) showTip('Estado compartido cargado ✓');
+  } else if (chosen) showTip('Shared state loaded ✓');
 }
 
 function stepAudit(id){ if (!audit.steps[id]) audit.steps[id] = {status:'pending', notes:'', checks:{}}; return audit.steps[id]; }
@@ -985,8 +985,8 @@ function fitAll(){
   const minX = Math.min(...nodes.map(n => n.x)) - 40, maxX = Math.max(...nodes.map(n => n.x + NODE_W)) + 40;
   const minY = Math.min(...nodes.map(n => n.y)) - 40, maxY = Math.max(...nodes.map(n => n.y + NODE_H)) + 40;
   const r = svg.getBoundingClientRect();
-  if (r.width === 0){ render(); return; } /* pestaña oculta: no se puede medir, pero igual dibujamos */
-  /* dejamos aire arriba y abajo para que la barra flotante y el zoom no tapen nodos */
+  if (r.width === 0){ render(); return; } /* hidden tab: cannot measure, but draw anyway */
+  /* leave room top and bottom so the floating bar and zoom do not cover nodes */
   const padT = 62, padB = 56;
   const availW = r.width, availH = Math.max(120, r.height - padT - padB);
   view.s = Math.min(availW / (maxX - minX), availH / (maxY - minY), 1.4);
@@ -1066,15 +1066,15 @@ document.getElementById('edgeLabel').addEventListener('input', ev => {
 /* ---------- Tabs ---------- */
 const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), wf:document.getElementById('tabWf'), report:document.getElementById('tabReport')};
 const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), wf:document.getElementById('wfView'), report:document.getElementById('reportView')};
-/* Cada sección tiene su propia URL: /flow /audit /workflows /report
-   (vercel.json reescribe esas rutas a index.html) */
+/* Each section has its own URL: /flow /audit /workflows /report
+   (vercel.json rewrites those paths to index.html) */
 const ROUTES = {flow:'/flow', audit:'/audit', wf:'/workflows', report:'/report'};
 const TITLES = {flow:'Flow chart', audit:'Audit checklist', wf:'Workflows', report:'Report'};
 let currentTab = 'flow';
 
 function tabFromPath(){
   const match = key => Object.keys(ROUTES).find(k => ROUTES[k] === '/' + key) || (key === 'workflow' ? 'wf' : null);
-  /* el # manda si existe (es el respaldo para file://, donde no hay rutas) */
+  /* the hash wins when present (fallback for file://, where there are no routes) */
   const hash = (location.hash || '').replace(/^#\/?/, '').toLowerCase();
   if (hash && match(hash)) return match(hash);
   const seg = (location.pathname.split('/').filter(Boolean).pop() || '').replace(/\.html?$/, '').toLowerCase();
@@ -1098,7 +1098,7 @@ function showTab(k, opts){
 }
 
 function navigate(k, replace){
-  /* con file:// no se puede usar la History API sobre rutas: caemos al hash */
+  /* file:// cannot use the History API over paths: fall back to the hash */
   const usePath = location.protocol === 'http:' || location.protocol === 'https:';
   const url = usePath ? ROUTES[k] + location.search : location.pathname + location.search + '#' + ROUTES[k];
   try{ history[replace ? 'replaceState' : 'pushState']({tab:k}, '', url); }catch(e){}
@@ -1164,10 +1164,10 @@ document.getElementById('pDelete').onclick = () => {
 };
 
 /* ---------- Audit tab (master–detail) ---------- */
-let auditSel = {kind:'tools', id:null};   /* qué se muestra en el detalle */
+let auditSel = {kind:'tools', id:null};   /* what the detail pane shows */
 let auditFilter = 'all';                  /* all | fail | pending */
 let auditQuery = '';
-let cpFocus = null;                       /* checkpoint enfocado para atajos de teclado */
+let cpFocus = null;                       /* focused checkpoint for keyboard shortcuts */
 
 function globalStats(){
   let total = 0, pass = 0, fail = 0;
@@ -1182,7 +1182,7 @@ function globalStats(){
           itemPct: total ? Math.round(pass / total * 100) : 0};
 }
 
-/* color del punto de un paso en la navegación */
+/* dot colour for a step in the nav list */
 function stepDot(n){
   const st = stepAudit(n.id).status;
   if (st !== 'pending') return STATUS[st].c;
@@ -1191,7 +1191,7 @@ function stepDot(n){
 }
 function matchQuery(txt){ return !auditQuery || String(txt).toLowerCase().includes(auditQuery); }
 
-/* ¿este checkpoint pasa el filtro activo? */
+/* does this checkpoint pass the active filter? */
 function passFilter(v){
   if (auditFilter === 'fail') return v === false;
   if (auditFilter === 'pending') return v !== true && v !== false;
@@ -1201,11 +1201,11 @@ function passFilter(v){
 function renderAudit(){
   const g = globalStats();
 
-  /* --- barra superior --- */
+  /* --- top bar --- */
   document.getElementById('auditTop').innerHTML = `
     <div style="display:flex; align-items:baseline; gap:10px;">
       <span class="bigPct num">${g.pct}%</span>
-      <span class="sub">auditado · ${g.allPass} de ${g.allTotal} checkpoints</span>
+      <span class="sub">audited · ${g.allPass} of ${g.allTotal} checkpoints</span>
     </div>
     <span class="trackWide">
       <i style="width:${g.allTotal ? g.allPass/g.allTotal*100 : 0}%; background:var(--ok); height:100%; display:block"></i>
@@ -1217,7 +1217,7 @@ function renderAudit(){
       <div class="kpi"><div class="k">Pending</div><div class="v num">${g.allPending}</div></div>
     </div>`;
 
-  /* --- navegación izquierda --- */
+  /* --- left nav --- */
   const tSel = auditSel.kind === 'tools' ? ' on' : '';
   const tDot = g.tFail ? 'var(--bad)' : g.tPass === g.tTotal && g.tTotal ? 'var(--ok)' : g.tPass ? 'var(--warn)' : 'var(--line2)';
   document.getElementById('navTools').innerHTML =
@@ -1231,19 +1231,19 @@ function renderAudit(){
       <span class="nm">${esc(n.name)}</span><span class="ct num">${ss.pass}/${ss.total}</span></button>`;
   }).join('');
 
-  document.getElementById('auditSearch').placeholder = `Buscar en ${g.allTotal} checkpoints…`;
+  document.getElementById('auditSearch').placeholder = `Search ${g.allTotal} checkpoints…`;
 
-  /* --- detalle --- */
+  /* --- detail --- */
   document.getElementById('auditDetail').innerHTML =
     auditSel.kind === 'tools' ? renderToolsDetail() : renderStepDetail();
 }
 
-/* control de tres estados: ✓ / · / ✕ */
+/* three-state control: ✓ / · / ✕ */
 function triHtml(dataAttrs, v){
   return `<span class="tri" ${dataAttrs}>
-    <button data-set="yes" class="${v === true ? 'on-y' : ''}" title="Funciona (1)">✓</button>
-    <button data-set="mid" class="${v !== true && v !== false ? 'on-m' : ''}" title="Sin auditar (2)">·</button>
-    <button data-set="no"  class="${v === false ? 'on-n' : ''}" title="Falta o está roto (3)">✕</button>
+    <button data-set="yes" class="${v === true ? 'on-y' : ''}" title="Works (1)">✓</button>
+    <button data-set="mid" class="${v !== true && v !== false ? 'on-m' : ''}" title="Not audited (2)">·</button>
+    <button data-set="no"  class="${v === false ? 'on-n' : ''}" title="Missing or broken (3)">✕</button>
   </span>`;
 }
 function cpRow(dataAttrs, v, txt, key){
@@ -1255,7 +1255,7 @@ function cpRow(dataAttrs, v, txt, key){
 
 function renderStepDetail(){
   const n = byId(auditSel.id);
-  if (!n) return `<div class="emptyNote">Ese paso ya no existe. Elige otro en la lista.</div>`;
+  if (!n) return `<div class="emptyNote">That step no longer exists. Pick another one from the list.</div>`;
   const sa = stepAudit(n.id), ss = stepStats(n), c = COLORS[n.t] || COLORS.man;
 
   const renderList = (arr, prefix) => {
@@ -1268,7 +1268,7 @@ function renderStepDetail(){
       shown++;
       out += cpRow(`data-step="${n.id}" data-key="${key}"`, v, t, n.id + ':' + key);
     });
-    return shown ? out : `<div class="emptyNote">Nada aquí con el filtro actual.</div>`;
+    return shown ? out : `<div class="emptyNote">Nothing here with the current filter.</div>`;
   };
 
   const failing = checkables(n).filter(it => sa.checks[it.key] === false);
@@ -1290,23 +1290,23 @@ function renderStepDetail(){
     ${failing.length ? `<div class="alertBar">
       <b>${failing.length} failing</b>
       <span class="txt">${failing.slice(0,3).map(f => esc(f.txt)).join(' · ')}${failing.length > 3 ? ' …' : ''}</span>
-      <button data-jumpfail="1">Ir al primero ↓</button>
+      <button data-jumpfail="1">Jump to first ↓</button>
     </div>` : ''}
     <div class="cols">
       <div class="colCard">
-        <div class="ch"><h4>Información requerida</h4><span class="ct num">${needPass} / ${needN}</span></div>
+        <div class="ch"><h4>Information required</h4><span class="ct num">${needPass} / ${needN}</span></div>
         ${renderList(n.needs, 'n')}
       </div>
       <div class="colCard">
-        <div class="ch"><h4>Información generada</h4><span class="ct num">${genPass} / ${genN}</span></div>
+        <div class="ch"><h4>Information generated</h4><span class="ct num">${genPass} / ${genN}</span></div>
         ${renderList(n.gen, 'g')}
       </div>
     </div>
     <div class="notesArea">
-      <div class="pLabel" style="margin-top:0">Notas de auditoría</div>
-      <textarea class="fld" data-notes="${n.id}" placeholder="Qué está roto, qué arreglar en HubSpot/GHL, responsables…">${esc(sa.notes)}</textarea>
+      <div class="pLabel" style="margin-top:0">Audit notes</div>
+      <textarea class="fld" data-notes="${n.id}" placeholder="What is broken, what to fix in HubSpot/GHL, owners…">${esc(sa.notes)}</textarea>
     </div>
-    <div class="shortcuts">Atajos: <kbd>1</kbd> funciona · <kbd>2</kbd> sin auditar · <kbd>3</kbd> falla · <kbd>↑</kbd><kbd>↓</kbd> moverse</div>`;
+    <div class="shortcuts">Shortcuts: <kbd>1</kbd> works · <kbd>2</kbd> not audited · <kbd>3</kbd> fails · <kbd>↑</kbd><kbd>↓</kbd> to move</div>`;
 }
 
 function renderToolsDetail(){
@@ -1324,7 +1324,7 @@ function renderToolsDetail(){
     return `<div class="colCard" style="margin-bottom:14px">
       <div class="ch"><h4>${esc(t.name)}</h4><span class="ct num">${ts.pass} / ${ts.total}${ts.fail ? ` · ${ts.fail} ✕` : ''}</span></div>
       ${rows}
-      <input type="text" class="fld" style="margin-top:12px" placeholder="Notas de esta herramienta…"
+      <input type="text" class="fld" style="margin-top:12px" placeholder="Notes for this tool…"
         data-toolnote="${ti}" value="${esc(ta.notes)}">
     </div>`;
   }).join('');
@@ -1333,14 +1333,14 @@ function renderToolsDetail(){
     <div class="detailHead">
       <div>
         <h2>Tools & integrations</h2>
-        <div class="meta">${DEFAULT_TOOLS.length} herramientas · ${g.tPass} de ${g.tTotal} confirmados${g.tFail ? ` · ${g.tFail} fallando` : ''}</div>
+        <div class="meta">${DEFAULT_TOOLS.length} tools · ${g.tPass} of ${g.tTotal} confirmed${g.tFail ? ` · ${g.tFail} failing` : ''}</div>
       </div>
     </div>
-    ${cards || '<div class="emptyNote">Nada aquí con el filtro actual.</div>'}
-    <div class="shortcuts">Atajos: <kbd>1</kbd> funciona · <kbd>2</kbd> sin auditar · <kbd>3</kbd> falla · <kbd>↑</kbd><kbd>↓</kbd> moverse</div>`;
+    ${cards || '<div class="emptyNote">Nothing here with the current filter.</div>'}
+    <div class="shortcuts">Shortcuts: <kbd>1</kbd> works · <kbd>2</kbd> not audited · <kbd>3</kbd> fails · <kbd>↑</kbd><kbd>↓</kbd> to move</div>`;
 }
 
-/* ---- interacción del audit ---- */
+/* ---- audit interaction ---- */
 const auditViewEl = document.getElementById('auditView');
 
 auditViewEl.addEventListener('click', ev => {
@@ -1451,7 +1451,7 @@ document.getElementById('auditFilters').addEventListener('click', ev => {
 
 /* ---------- Workflow audits tab ---------- */
 function wfById(id){ return workflows.find(w => w.id === id); }
-/* solo http(s): evita javascript: y demas, ya que el estado es compartido */
+/* http(s) only: blocks javascript: and friends, since the state is shared */
 function safeUrl(u){
   const s = String(u || '').trim();
   if (!s) return '';
@@ -1478,19 +1478,19 @@ function renderWf(){
     <tr class="${w.omar === 'fix' ? 'rowFix' : ''}">
       <td class="wfNum num">${i + 1}</td>
       <td>
-        <textarea class="wfCell wfName" rows="1" data-wf="${w.id}" data-f="name" placeholder="Nombre del workflow">${esc(w.name || '')}</textarea>
+        <textarea class="wfCell wfName" rows="1" data-wf="${w.id}" data-f="name" placeholder="Workflow name">${esc(w.name || '')}</textarea>
         <div class="wfLinkWrap">
           <textarea class="wfCell wfLink" rows="1" data-wf="${w.id}" data-f="link" placeholder="https://…">${esc(w.link || '')}</textarea>
           <a class="wfOpen" data-wfopen="${w.id}" href="${esc(safeUrl(w.link) || '#')}" target="_blank" rel="noopener noreferrer"
-             title="Abrir el workflow en otra pestaña" style="${safeUrl(w.link) ? '' : 'display:none'}">↗</a>
+             title="Open the workflow in a new tab" style="${safeUrl(w.link) ? '' : 'display:none'}">↗</a>
         </div>
       </td>
       <td><select class="wfSel wfType${w.type ? '' : ' empty'}" data-wfsel="${w.id}" data-f="type" data-nocolor="1">${opts(WF_TYPE, w.type || '')}</select></td>
-      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="desc" placeholder="Qué hace / qué dispara">${esc(w.desc || '')}</textarea></td>
+      <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="desc" placeholder="What it does / what triggers it">${esc(w.desc || '')}</textarea></td>
       <td><select class="wfSel wf-${w.status}" data-wfsel="${w.id}" data-f="status">${opts({on:'On', off:'Off'}, w.status)}</select></td>
       <td><textarea class="wfCell" rows="1" data-wf="${w.id}" data-f="next" placeholder="—">${esc(w.next || '')}</textarea></td>
       <td><select class="wfSel wf-${w.omar}" data-wfsel="${w.id}" data-f="omar">${opts(WF_OMAR, w.omar)}</select></td>
-      <td><button class="wfDel" data-wfdel="${w.id}" title="Eliminar fila">✕</button></td>
+      <td><button class="wfDel" data-wfdel="${w.id}" title="Delete row">✕</button></td>
     </tr>`).join('');
   document.getElementById('wfEmpty').style.display = workflows.length ? 'none' : 'block';
   document.querySelectorAll('#wfBody .wfCell').forEach(autoGrow);
@@ -1512,7 +1512,7 @@ document.getElementById('wfView').addEventListener('input', ev => {
   if (!w) return;
   w[t.dataset.f] = t.value;
   autoGrow(t);
-  if (t.dataset.f === 'link'){ /* actualizamos el ↗ sin re-renderizar, para no perder el cursor */
+  if (t.dataset.f === 'link'){ /* update the ↗ without re-rendering, so the caret is not lost */
     const a = t.parentNode.querySelector('[data-wfopen]');
     const url = safeUrl(w.link);
     a.href = url || '#';
@@ -1538,7 +1538,7 @@ document.getElementById('wfView').addEventListener('click', ev => {
   if (!w) return;
   const drop = () => { workflows = workflows.filter(x => x.id !== w.id); renderWf(); saveState(); };
   const hasData = (w.name || w.link || w.desc || w.next || '').trim();
-  if (hasData) askConfirm(`¿Eliminar el workflow "${w.name || 'sin nombre'}"?`, drop);
+  if (hasData) askConfirm(`Delete the workflow "${w.name || 'untitled'}"?`, drop);
   else drop();
 });
 
@@ -1554,11 +1554,11 @@ function itemLabel(n, key){
 function renderReport(){
   const g = globalStats();
   const d = new Date();
-  const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const mesAnio = `${MESES[d.getMonth()]} ${d.getFullYear()}`;
-  const fecha = `${d.getDate()} ${MESES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthYear = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const dateStr = `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}, ${d.getFullYear()}`;
 
-  /* --- avance por paso --- */
+  /* --- progress by step --- */
   const stepBars = nodes.map(n => {
     const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
     const barCol = ss.fail ? 'var(--bad)' : st.c === 'var(--line2)' ? 'var(--line2)' : st.c;
@@ -1571,19 +1571,19 @@ function renderReport(){
     </div>`;
   }).join('');
 
-  /* --- hallazgos críticos: pasos rotos o con problemas --- */
+  /* --- critical findings: broken or problematic steps --- */
   const flagged = nodes.filter(n => ['fail','issue'].includes(stepAudit(n.id).status));
   const findings = flagged.map(n => {
     const sa = stepAudit(n.id), ss = stepStats(n);
     const firstFails = checkables(n).filter(it => sa.checks[it.key] === false).slice(0,2).map(it => it.txt);
-    const desc = sa.notes.trim() || (firstFails.length ? firstFails.join(' · ') : `${ss.fail} punto(s) fallando de ${ss.total}.`);
+    const desc = sa.notes.trim() || (firstFails.length ? firstFails.join(' · ') : `${ss.fail} of ${ss.total} checkpoints failing.`);
     return `<div class="finding ${sa.status === 'issue' ? 'warn' : ''}">
       <div class="ft">${esc(n.name)}</div>
       <div class="fd">${esc(STATUS[sa.status].lbl)} · ${esc(desc)}</div>
     </div>`;
   }).join('');
 
-  /* --- siguientes pasos: lo que está fallando, en orden de flujo --- */
+  /* --- next steps: what is failing, in flow order --- */
   const actions = [];
   nodes.forEach(n => {
     const sa = stepAudit(n.id);
@@ -1598,14 +1598,14 @@ function renderReport(){
   const nextSteps = actions.slice(0, 8).map((a, i) =>
     `<div><span class="n num">${String(i+1).padStart(2,'0')}</span><span>${esc(a)}</span></div>`).join('');
 
-  /* --- tabla de herramientas --- */
+  /* --- tools table --- */
   const toolRows = DEFAULT_TOOLS.map(t => {
     const ts = toolStats(t);
     return `<tr><td>${esc(t.name)}</td><td class="num">${ts.pass}/${ts.total}</td>
       <td class="num" style="color:${ts.fail ? 'var(--bad)' : 'var(--ink2)'}">${ts.fail || '—'}</td></tr>`;
   }).join('');
 
-  /* --- listados detallados --- */
+  /* --- detailed listings --- */
   let failHtml = '', missHtml = '';
   nodes.forEach(n => {
     const sa = stepAudit(n.id);
@@ -1642,62 +1642,62 @@ function renderReport(){
       <div class="inner">
         <div style="flex:1; min-width:260px">
           <img src="${logo}" alt="Reputation Pros">
-          <div class="rptEyebrow">Pipeline audit · ${mesAnio}</div>
-          <h1>Auditoría del proceso de ventas end-to-end</h1>
-          <div class="lede">${nodes.length} pasos · ${DEFAULT_TOOLS.length} herramientas · ${g.allTotal} puntos de verificación.
+          <div class="rptEyebrow">Pipeline audit · ${monthYear}</div>
+          <h1>End-to-end sales process audit</h1>
+          <div class="lede">${nodes.length} steps · ${DEFAULT_TOOLS.length} tools · ${g.allTotal} checkpoints.
             Fillout → HubSpot → GoHighLevel → Slack → Stripe.</div>
         </div>
         <div class="rptScore">
-          <div class="rptEyebrow">Avance</div>
+          <div class="rptEyebrow">Progress</div>
           <div class="big num">${g.pct}%</div>
-          <div class="cap num">${g.allPass} / ${g.allTotal} verificados</div>
+          <div class="cap num">${g.allPass} / ${g.allTotal} verified</div>
         </div>
       </div>
     </div>
 
     <div class="rptKpis">
-      <div><div class="k">Funcionan</div><div class="v num" style="color:var(--ok)">${g.allPass}</div></div>
-      <div><div class="k">Fallando</div><div class="v num" style="color:var(--bad)">${g.allFail}</div></div>
-      <div><div class="k">Pendientes</div><div class="v num" style="color:var(--ink2)">${g.allPending}</div></div>
-      <div><div class="k">Pasos rotos</div><div class="v num">${brokenCount} <small>de ${nodes.length}</small></div></div>
+      <div><div class="k">Working</div><div class="v num" style="color:var(--ok)">${g.allPass}</div></div>
+      <div><div class="k">Failing</div><div class="v num" style="color:var(--bad)">${g.allFail}</div></div>
+      <div><div class="k">Pending</div><div class="v num" style="color:var(--ink2)">${g.allPending}</div></div>
+      <div><div class="k">Broken steps</div><div class="v num">${brokenCount} <small>of ${nodes.length}</small></div></div>
     </div>
 
     <div class="rptBody">
       <div>
-        <div class="rptH">Avance por paso</div>
+        <div class="rptH">Progress by step</div>
         <div class="barList">${stepBars}</div>
       </div>
       <div>
-        <div class="rptH bad">Hallazgos críticos</div>
-        <div class="findList">${findings || '<div class="finding" style="border-left-color:var(--ok)"><div class="ft">Sin pasos marcados como rotos</div><div class="fd">Ningún paso está marcado como Broken o Issues todavía.</div></div>'}</div>
-        <div class="rptH" style="margin-top:24px">Siguientes pasos</div>
-        <div class="stepsList">${nextSteps || '<div><span>Nada marcado como fallando todavía.</span></div>'}</div>
+        <div class="rptH bad">Critical findings</div>
+        <div class="findList">${findings || '<div class="finding" style="border-left-color:var(--ok)"><div class="ft">No steps flagged</div><div class="fd">No step is marked as Broken or Issues yet.</div></div>'}</div>
+        <div class="rptH" style="margin-top:24px">Next steps</div>
+        <div class="stepsList">${nextSteps || '<div><span>Nothing marked as failing yet.</span></div>'}</div>
       </div>
     </div>
 
     <div class="rptSection">
-      <div class="rptH">Herramientas e integraciones</div>
+      <div class="rptH">Tools &amp; integrations</div>
       <table class="rptTable">
-        <thead><tr><th>Herramienta</th><th>Confirmados</th><th>Fallando</th></tr></thead>
+        <thead><tr><th>Tool</th><th>Confirmed</th><th>Failing</th></tr></thead>
         <tbody>${toolRows}</tbody>
       </table>
     </div>
 
     <div class="rptSection">
-      <div class="rptH bad">Puntos fallando (${g.allFail})</div>
-      <div style="margin-top:10px">${failHtml || '<div class="liTight"><small>Nada marcado como fallando.</small></div>'}</div>
+      <div class="rptH bad">Failing checkpoints (${g.allFail})</div>
+      <div style="margin-top:10px">${failHtml || '<div class="liTight"><small>Nothing marked as failing.</small></div>'}</div>
     </div>
 
     <div class="rptSection">
-      <div class="rptH">Pendientes de verificar (${g.allPending})</div>
-      <div style="margin-top:10px">${missHtml || '<div class="liTight"><small>Todo auditado. 🎉</small></div>'}</div>
+      <div class="rptH">Pending verification (${g.allPending})</div>
+      <div style="margin-top:10px">${missHtml || '<div class="liTight"><small>Everything audited. 🎉</small></div>'}</div>
     </div>
 
-    ${notesHtml ? `<div class="rptSection"><div class="rptH">Notas de auditoría</div><div style="margin-top:10px">${notesHtml}</div></div>` : ''}
+    ${notesHtml ? `<div class="rptSection"><div class="rptH">Audit notes</div><div style="margin-top:10px">${notesHtml}</div></div>` : ''}
 
     <div class="rptFoot">
       <span>Reputation Pros · Pipeline Audit</span>
-      <span>Generado ${fecha}</span>
+      <span>Generated ${dateStr}</span>
     </div>`;
 }
 
@@ -1757,12 +1757,12 @@ function showTip(msg){
   tipTimer = setTimeout(() => t.style.display = 'none', 3200);
 }
 
-/* ---------- Tema claro / oscuro (preferencia local, no compartida) ---------- */
+/* ---------- Light / dark theme (local preference, not shared) ---------- */
 const THEME_KEY = 'audit-theme';
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t);
   document.getElementById('btnTheme').textContent = t === 'dark' ? '☀' : '☾';
-  document.getElementById('btnTheme').title = t === 'dark' ? 'Cambiar a claro' : 'Cambiar a oscuro';
+  document.getElementById('btnTheme').title = t === 'dark' ? 'Switch to light' : 'Switch to dark';
 }
 let theme = 'light';
 try{ theme = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }catch(e){}
@@ -1774,7 +1774,7 @@ document.getElementById('btnTheme').onclick = () => {
   render();
 };
 
-/* ---------- Menú ⋯ ---------- */
+/* ---------- ⋯ menu ---------- */
 const appMenu = document.getElementById('appMenu');
 document.getElementById('btnMenu').onclick = e => { e.stopPropagation(); appMenu.classList.toggle('open'); };
 document.addEventListener('click', e => { if (!appMenu.contains(e.target)) appMenu.classList.remove('open'); });
@@ -1783,7 +1783,7 @@ appMenu.addEventListener('click', () => appMenu.classList.remove('open'));
 /* ---------- Share link ---------- */
 document.getElementById('btnShare').onclick = async () => {
   const url = location.href;
-  try{ await navigator.clipboard.writeText(url); showTip(`Link de "${TITLES[currentTab]}" copiado ✓ — abre en esta misma sección`); }
+  try{ await navigator.clipboard.writeText(url); showTip(`Link to "${TITLES[currentTab]}" copied ✓ — it opens on this same section`); }
   catch(e){ showTip(url); }
 };
 
@@ -1792,7 +1792,7 @@ fitAll();
 renderAudit();
 renderReport();
 renderWf();
-showTab(tabFromPath() || 'flow', {replace:true});   /* la URL manda al cargar */
+showTab(tabFromPath() || 'flow', {replace:true});   /* the URL wins on load */
 loadState();
 </script>
 </body>

@@ -1,53 +1,63 @@
 # Pipeline Audit — Reputation Pros
 
-Herramienta de flowchart + audit checklist + reporte con **estado compartido entre todos los visitantes** (Upstash Redis).
+Flow chart + audit checklist + workflow sheet + client-facing report, with **state shared across every visitor** (Upstash Redis).
 
-## Estructura
+## Structure
 
 ```
-index.html      → la app completa (flow chart, audit, workflows, report)
-api/state.js    → serverless function (runtime Node.js) que lee/escribe el key "audit-state" en Redis
-vercel.json     → reescribe /flow /audit /workflows /report a index.html
+index.html      → the whole app (flow chart, audit, workflows, report)
+api/state.js    → serverless function (Node.js runtime) that reads/writes the "audit-state" key in Redis
+vercel.json     → rewrites /flow /audit /workflows /report to index.html
 ```
 
-No hace falta `package.json`: Vercel sirve `index.html` como estático y detecta `api/state.js` como serverless function automáticamente.
+No `package.json` needed: Vercel serves `index.html` as a static file and picks up `api/state.js` as a serverless function automatically.
 
-## Rutas
+## Routes
 
-Cada sección tiene su propia URL, así que se puede compartir y sobrevive al refresh:
+Every section has its own URL, so it can be shared and survives a refresh:
 
-| URL | Sección |
+| URL | Section |
 |---|---|
-| `/` o `/flow` | Flow chart |
+| `/` or `/flow` | Flow chart |
 | `/audit` | Audit checklist |
 | `/workflows` | Workflow audits |
 | `/report` | Report |
 
-`vercel.json` reescribe esas rutas a `index.html` y la app lee `location.pathname` al cargar.
-Abriendo el archivo directo (`file://`) no hay rutas, así que cae a un `#` (`index.html#/audit`).
+`vercel.json` rewrites those paths to `index.html` and the app reads `location.pathname` on load.
+Opened as a plain file (`file://`) there are no routes, so it falls back to a hash (`index.html#/audit`).
 
-## Setup en Vercel
+## Vercel setup
 
-1. Sube el repo/carpeta a Vercel (`vercel` CLI o import desde GitHub).
-2. En el proyecto de Vercel deben existir las variables de entorno (ya las tienes si conectaste la integración Upstash / KV):
-   - `KV_REST_API_URL`
-   - `KV_REST_API_TOKEN`
-3. Deploy. Listo — no hay build step.
+1. Push the repo to Vercel (`vercel` CLI or import from GitHub).
+2. Connect a Redis database under **Storage → Connect Database** (Upstash). The project needs these env vars — either name works:
+   - `KV_REST_API_URL` + `KV_REST_API_TOKEN`, or
+   - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+3. **Redeploy** — env vars only reach new deployments. `/api/state` returns a clear 500 explaining what is missing if they are absent.
 
-## Cómo funciona el estado compartido
+## How the shared state works
 
-- **Al abrir la página**: `GET /api/state`. Si Redis tiene datos, reemplaza `nodes`, `edges` y `audit` y re-renderiza; si no (o si falla), se usan los defaults del HTML.
-- **Al editar cualquier cosa** (checkboxes, notas, status, mover/crear/borrar pasos y conexiones, labels, paneles): `saveState()` hace un POST del estado completo con **debounce de 1.5 s**. Última escritura gana.
-- **Indicador en el header**: `Guardando…` → `Guardado ✓`, o `Error al guardar (reintenta)` (reintenta solo cada 5 s, o haz click en el texto para reintentar ya).
-- Al cerrar la pestaña con cambios pendientes se envía un último guardado vía `sendBeacon`.
-- **Export/Import JSON** siguen funcionando como respaldo manual; un Import también sube ese estado a Redis (lo comparte con todos).
-- **Reset** restaura el flujo original **para todos los visitantes**.
+- **On load**: `GET /api/state`. If Redis has data, it replaces `nodes`, `edges`, `audit`, `workflows` and re-renders; otherwise the defaults baked into the HTML are used.
+- **On any edit** (checkpoints, notes, status, moving/creating/deleting steps and connections, labels, workflow rows): `saveState()` POSTs the whole state with a **1.5s debounce**. Last write wins.
+- **Header indicator**: `Saving…` → `Saved`, or `Save failed` (auto-retries every 5s; click it to retry immediately).
+- **localStorage backup** (key `audit-state-local`): every change is written locally first. On load the priority is local-unsynced > server > local. If it restores from local, it re-syncs to Redis on its own — so a refresh never loses work even if the API is down.
+- Closing the tab with pending changes fires one last save via `sendBeacon`.
+- **Export / Import JSON** (in the ⋯ menu) still work as a manual backup; an Import also uploads that state to Redis.
+- **Reset** restores the original flow **for everyone**.
 
 ## API
 
-- `GET /api/state` → JSON `{nodes, edges, audit}` o `null` si aún no hay nada guardado.
-- `POST /api/state` con body `{nodes, edges, audit}` → `{ok: true}`. Valida la forma del body (400 si no cumple).
+- `GET /api/state` → JSON `{nodes, edges, audit, workflows}` or `null` if nothing has been saved yet.
+- `POST /api/state` with body `{nodes, edges, audit, workflows}` → `{ok: true}`. Validates the shape (400 if it does not match).
 
-## Desarrollo local
+## Keyboard shortcuts (Audit checklist)
 
-`vercel dev` con las env vars en `.env.local`, o simplemente abrir `index.html` (sin API funciona con los defaults y el guardado marca error).
+| Key | Action |
+|---|---|
+| `1` | Mark checkpoint as working |
+| `2` | Mark checkpoint as not audited |
+| `3` | Mark checkpoint as failing |
+| `↑` `↓` | Move between checkpoints |
+
+## Local development
+
+`vercel dev` with the env vars in `.env.local`, or just open `index.html` (with no API it runs on the defaults and the save indicator shows an error).
