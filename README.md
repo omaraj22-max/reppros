@@ -1,6 +1,6 @@
 # Pipeline Audit — Reputation Pros
 
-Flow chart + audit checklist + workflow sheet + client-facing report, with **state shared across every visitor** (Upstash Redis).
+Flow chart + audit checklist + workflow sheet + task list + client-facing report, with **state shared across every visitor** (Upstash Redis).
 
 ## Structure
 
@@ -50,13 +50,23 @@ Opened as a plain file (`file://`) there are no routes, so it falls back to a ha
 - `GET /api/state` → JSON `{nodes, edges, audit, workflows, tasks}` or `null` if nothing has been saved yet.
 - `POST /api/state` with body `{nodes, edges, audit, workflows, tasks}` → `{ok: true}`. Validates the shape (400 if it does not match).
 
+## How progress is measured
+
+Progress is counted in **sections** — each pipeline step and each tool is one section (33 in total).
+The headline % is the **average progress across sections**, so a half-reviewed section still counts
+and no oversized section drowns out the rest. A section is *closed* once every checkpoint in it has
+been decided (`✓`, `⏱` or `✕`).
+
 ## Keyboard shortcuts (Audit checklist)
+
+Each checkpoint is a four-state control — `✓` works · `⏱` reviewed but needs a live test · `✕` missing or broken · `·` untouched.
 
 | Key | Action |
 |---|---|
-| `1` | Mark checkpoint as working |
-| `2` | Mark checkpoint as not audited |
-| `3` | Mark checkpoint as failing |
+| `1` | Works |
+| `2` | Needs a live test |
+| `3` | Missing or broken |
+| `4` | Clear (back to untouched) |
 | `↑` `↓` | Move between checkpoints |
 
 ## Local development
