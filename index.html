@@ -1182,12 +1182,17 @@ function globalStats(){
           itemPct: total ? Math.round(pass / total * 100) : 0};
 }
 
-/* dot colour for a step in the nav list */
+/* Nav dot, driven purely by the checkpoints:
+   any ✕ → red · every checkpoint ✓ → green · anything else → amber */
+function dotFor(pass, fail, total){
+  if (!total) return 'var(--line2)';        /* nothing to audit yet */
+  if (fail) return 'var(--bad)';
+  if (pass === total) return 'var(--ok)';
+  return 'var(--warn)';
+}
 function stepDot(n){
-  const st = stepAudit(n.id).status;
-  if (st !== 'pending') return STATUS[st].c;
   const ss = stepStats(n);
-  return ss.fail ? 'var(--bad)' : ss.pass ? 'var(--ok)' : 'var(--line2)';
+  return dotFor(ss.pass, ss.fail, ss.total);
 }
 function matchQuery(txt){ return !auditQuery || String(txt).toLowerCase().includes(auditQuery); }
 
@@ -1219,7 +1224,7 @@ function renderAudit(){
 
   /* --- left nav --- */
   const tSel = auditSel.kind === 'tools' ? ' on' : '';
-  const tDot = g.tFail ? 'var(--bad)' : g.tPass === g.tTotal && g.tTotal ? 'var(--ok)' : g.tPass ? 'var(--warn)' : 'var(--line2)';
+  const tDot = dotFor(g.tPass, g.tFail, g.tTotal);
   document.getElementById('navTools').innerHTML =
     `<button class="navItem${tSel}" data-nav="tools"><i style="background:${tDot}"></i>
       <span class="nm">${DEFAULT_TOOLS.length} tools</span><span class="ct num">${g.tPass}/${g.tTotal}</span></button>`;
