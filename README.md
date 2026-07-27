@@ -5,9 +5,9 @@ Flow chart + audit checklist + workflow sheet + client-facing report, with **sta
 ## Structure
 
 ```
-index.html      → the whole app (flow chart, audit, workflows, report)
+index.html      → the whole app (flow chart, audit, workflows, tasks, report)
 api/state.js    → serverless function (Node.js runtime) that reads/writes the "audit-state" key in Redis
-vercel.json     → rewrites /flow /audit /workflows /report to index.html
+vercel.json     → rewrites /flow /audit /workflows /tasks /report to index.html
 ```
 
 No `package.json` needed: Vercel serves `index.html` as a static file and picks up `api/state.js` as a serverless function automatically.
@@ -21,6 +21,7 @@ Every section has its own URL, so it can be shared and survives a refresh:
 | `/` or `/flow` | Flow chart |
 | `/audit` | Audit checklist |
 | `/workflows` | Workflow audits |
+| `/tasks` | Other tasks |
 | `/report` | Report |
 
 `vercel.json` rewrites those paths to `index.html` and the app reads `location.pathname` on load.
@@ -46,8 +47,8 @@ Opened as a plain file (`file://`) there are no routes, so it falls back to a ha
 
 ## API
 
-- `GET /api/state` → JSON `{nodes, edges, audit, workflows}` or `null` if nothing has been saved yet.
-- `POST /api/state` with body `{nodes, edges, audit, workflows}` → `{ok: true}`. Validates the shape (400 if it does not match).
+- `GET /api/state` → JSON `{nodes, edges, audit, workflows, tasks}` or `null` if nothing has been saved yet.
+- `POST /api/state` with body `{nodes, edges, audit, workflows, tasks}` → `{ok: true}`. Validates the shape (400 if it does not match).
 
 ## Keyboard shortcuts (Audit checklist)
 

@@ -241,8 +241,8 @@
   .emptyNote{padding:30px; text-align:center; color:var(--ink2); font-size:12.5px;}
 
   /* ---------------- Workflows ---------------- */
-  #wfView{flex:1; display:none; overflow-y:auto; min-width:0;}
-  #wfView.active{display:block;}
+  #wfView, #tasksView{flex:1; display:none; overflow-y:auto; min-width:0;}
+  #wfView.active, #tasksView.active{display:block;}
   .wfWrap{padding:22px 24px 40px;}
   .wfHead{display:flex; align-items:flex-start; gap:14px; margin-bottom:16px; flex-wrap:wrap;}
   .wfHead h2{font-size:19px; font-weight:680; letter-spacing:-.02em;}
@@ -278,6 +278,11 @@
   .wf-wip{background:var(--warnSoft); color:var(--warn); border-color:transparent;}
   .wf-pass{background:var(--okSoft); color:var(--ok); border-color:transparent;}
   .wf-fix{background:var(--bad); color:#fff; border-color:transparent;}
+  .ts-todo{background:var(--panel2); color:var(--ink2);}
+  .ts-doing{background:var(--warnSoft); color:var(--warn); border-color:transparent;}
+  .ts-done{background:var(--okSoft); color:var(--ok); border-color:transparent;}
+  .ts-blocked{background:var(--bad); color:#fff; border-color:transparent;}
+  .wfTable tbody tr.rowDone .wfCell{color:var(--ink2);}
   .wfDel{border:none; background:transparent; color:var(--line2); font-size:13px; padding:13px 10px; width:100%;}
   .wfDel:hover{color:var(--bad);}
   .wfAddRow{width:100%; text-align:left; padding:11px 16px; border:0; background:transparent; color:var(--ink2);
@@ -375,6 +380,7 @@
     <button class="tab active" id="tabFlow">Flow chart</button>
     <button class="tab" id="tabAudit">Audit checklist</button>
     <button class="tab" id="tabWf">Workflows</button>
+    <button class="tab" id="tabTasks">Other tasks</button>
     <button class="tab" id="tabReport">Report</button>
   </nav>
   <div class="hSpacer"></div>
@@ -519,6 +525,32 @@
         </table>
         <div class="wfEmpty" id="wfEmpty" style="display:none">No workflows yet.</div>
         <button class="wfAddRow" id="wfAddRow">＋ New row</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tasksView">
+    <div class="wfWrap">
+      <div class="wfHead">
+        <div>
+          <h2>Other tasks</h2>
+          <div class="sub">Anything to do that is not a pipeline step or a workflow</div>
+        </div>
+        <div class="wfCounts" id="taskSummary"></div>
+        <button class="primaryBtn" id="taskAdd">＋ Add task</button>
+      </div>
+      <div class="wfScroll">
+        <table class="wfTable" style="min-width:760px">
+          <colgroup>
+            <col style="width:40px"><col style="width:34%"><col style="width:13%"><col style="width:46%"><col style="width:44px">
+          </colgroup>
+          <thead><tr>
+            <th>#</th><th>Task</th><th>Status</th><th>Notes</th><th></th>
+          </tr></thead>
+          <tbody id="taskBody"></tbody>
+        </table>
+        <div class="wfEmpty" id="taskEmpty" style="display:none">No tasks yet.</div>
+        <button class="wfAddRow" id="taskAddRow">＋ New row</button>
       </div>
     </div>
   </div>
@@ -688,6 +720,12 @@ function blankWf(){ return {id:'w' + Math.random().toString(36).slice(2,9) + Dat
 function seedWf(){ return [blankWf(), blankWf(), blankWf()]; }
 let workflows = seedWf();
 
+/* Other tasks: anything to do that is not a pipeline step or a workflow */
+const TASK_STATUS = {todo:'To do', doing:'In progress', done:'Done', blocked:'Blocked'};
+function blankTask(){ return {id:'t' + Math.random().toString(36).slice(2,9) + Date.now().toString(36).slice(-4), name:'', status:'todo', notes:''}; }
+function seedTasks(){ return [blankTask(), blankTask(), blankTask()]; }
+let tasks = seedTasks();
+
 /* ---------- Shared state (Upstash Redis via /api/state) ---------- */
 const saveStatusEl = document.getElementById('saveStatus');
 const saveTextEl = saveStatusEl.querySelector('span');
@@ -698,7 +736,7 @@ function setSaveStatus(s){
 }
 const LS_KEY = 'audit-state-local';
 let saveTimer = null, retryTimer = null, dirty = false;
-function fullState(){ return {nodes, edges, audit, workflows}; }
+function fullState(){ return {nodes, edges, audit, workflows, tasks}; }
 function persistLocal(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify({state:fullState(), dirty, ts:Date.now()})); }catch(e){}
 }
@@ -753,8 +791,9 @@ async function loadState(){
   if (chosen){
     nodes = chosen.nodes; edges = chosen.edges; audit = chosen.audit;
     if (Array.isArray(chosen.workflows)) workflows = chosen.workflows;
+    if (Array.isArray(chosen.tasks)) tasks = chosen.tasks;
     selectedNode = null; selectedEdge = null; closePanel();
-    fitAll(); renderAudit(); renderReport(); renderWf();
+    fitAll(); renderAudit(); renderReport(); renderWf(); renderTasks();
   }
   if (fromLocal){
     showTip('Restored from local backup — syncing…');
@@ -1045,8 +1084,9 @@ document.getElementById('fileImport').onchange = ev => {
       if (d.edges) edges = d.edges;
       if (d.audit) audit = d.audit;
       if (Array.isArray(d.workflows)) workflows = d.workflows;
+      if (Array.isArray(d.tasks)) tasks = d.tasks;
       selectedNode = null; selectedEdge = null; closePanel();
-      fitAll(); renderAudit(); renderReport(); renderWf(); showTip('Imported ✓'); saveState();
+      fitAll(); renderAudit(); renderReport(); renderWf(); renderTasks(); showTip('Imported ✓'); saveState();
     } catch(e){ showTip('Invalid JSON file'); }
   };
   rd.readAsText(f);
@@ -1066,8 +1106,8 @@ document.getElementById('btnReset').onclick = () => {
     nodes = JSON.parse(JSON.stringify(DEFAULT_NODES));
     edges = JSON.parse(JSON.stringify(DEFAULT_EDGES));
     audit = {steps:{}, tools:{}};
-    workflows = seedWf();
-    selectedNode = null; selectedEdge = null; closePanel(); fitAll(); renderAudit(); renderReport(); renderWf(); saveState();
+    workflows = seedWf(); tasks = seedTasks();
+    selectedNode = null; selectedEdge = null; closePanel(); fitAll(); renderAudit(); renderReport(); renderWf(); renderTasks(); saveState();
   });
 };
 document.getElementById('edgeLabel').addEventListener('input', ev => {
@@ -1075,12 +1115,12 @@ document.getElementById('edgeLabel').addEventListener('input', ev => {
 });
 
 /* ---------- Tabs ---------- */
-const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), wf:document.getElementById('tabWf'), report:document.getElementById('tabReport')};
-const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), wf:document.getElementById('wfView'), report:document.getElementById('reportView')};
+const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), wf:document.getElementById('tabWf'), tasks:document.getElementById('tabTasks'), report:document.getElementById('tabReport')};
+const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), wf:document.getElementById('wfView'), tasks:document.getElementById('tasksView'), report:document.getElementById('reportView')};
 /* Each section has its own URL: /flow /audit /workflows /report
    (vercel.json rewrites those paths to index.html) */
-const ROUTES = {flow:'/flow', audit:'/audit', wf:'/workflows', report:'/report'};
-const TITLES = {flow:'Flow chart', audit:'Audit checklist', wf:'Workflows', report:'Report'};
+const ROUTES = {flow:'/flow', audit:'/audit', wf:'/workflows', tasks:'/tasks', report:'/report'};
+const TITLES = {flow:'Flow chart', audit:'Audit checklist', wf:'Workflows', tasks:'Other tasks', report:'Report'};
 let currentTab = 'flow';
 
 function tabFromPath(){
@@ -1097,12 +1137,11 @@ function showTab(k, opts){
   currentTab = k;
   Object.keys(tabs).forEach(x => tabs[x].classList.toggle('active', x === k));
   views.flow.classList.toggle('hidden', k !== 'flow');
-  views.audit.classList.toggle('active', k === 'audit');
-  views.wf.classList.toggle('active', k === 'wf');
-  views.report.classList.toggle('active', k === 'report');
+  ['audit','wf','tasks','report'].forEach(x => views[x].classList.toggle('active', k === x));
   if (k === 'flow') setTimeout(fitAll, 0);
   if (k === 'audit') renderAudit();
   if (k === 'wf') renderWf();
+  if (k === 'tasks') renderTasks();
   if (k === 'report') renderReport();
   document.title = TITLES[k] + ' · Pipeline Audit — Reputation Pros';
   if (o.nav !== false) navigate(k, o.replace);
@@ -1582,6 +1621,76 @@ document.getElementById('wfView').addEventListener('click', ev => {
   else drop();
 });
 
+/* ---------- Other tasks tab ---------- */
+function taskById(id){ return tasks.find(t => t.id === id); }
+
+function renderTaskSummary(){
+  const c = {todo:0, doing:0, done:0, blocked:0};
+  tasks.forEach(t => { if (c[t.status] !== undefined) c[t.status]++; });
+  document.getElementById('taskSummary').innerHTML = `
+    <span style="color:var(--ok)"><b>${c.done}</b> done</span>
+    <span style="color:var(--warn)"><b>${c.doing}</b> in progress</span>
+    <span style="color:var(--bad)"><b>${c.blocked}</b> blocked</span>
+    <span style="color:var(--ink2)"><b>${c.todo}</b> to do</span>`;
+}
+
+function renderTasks(){
+  renderTaskSummary();
+  const opts = (map, val) => Object.keys(map).map(k => `<option value="${k}" ${val === k ? 'selected' : ''}>${map[k]}</option>`).join('');
+  document.getElementById('taskBody').innerHTML = tasks.map((t, i) => `
+    <tr class="${t.status === 'blocked' ? 'rowFix' : t.status === 'done' ? 'rowDone' : ''}">
+      <td class="wfNum num">${i + 1}</td>
+      <td><textarea class="wfCell wfName" rows="1" data-task="${t.id}" data-f="name" placeholder="What needs to be done">${esc(t.name || '')}</textarea></td>
+      <td><select class="wfSel ts-${t.status}" data-tasksel="${t.id}" data-f="status">${opts(TASK_STATUS, t.status)}</select></td>
+      <td><textarea class="wfCell" rows="1" data-task="${t.id}" data-f="notes" placeholder="Context, blockers, who owns it…">${esc(t.notes || '')}</textarea></td>
+      <td><button class="wfDel" data-taskdel="${t.id}" title="Delete row">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('taskEmpty').style.display = tasks.length ? 'none' : 'block';
+  document.querySelectorAll('#taskBody .wfCell').forEach(autoGrow);
+}
+
+function addTaskRow(){
+  tasks.push(blankTask());
+  renderTasks(); saveState();
+  const rows = document.querySelectorAll('#taskBody tr');
+  const last = rows[rows.length - 1];
+  if (last) last.querySelector('.wfCell').focus();
+}
+document.getElementById('taskAdd').onclick = addTaskRow;
+document.getElementById('taskAddRow').onclick = addTaskRow;
+
+document.getElementById('tasksView').addEventListener('input', ev => {
+  const el = ev.target;
+  if (!el.matches('[data-task]')) return;
+  const t = taskById(el.dataset.task);
+  if (!t) return;
+  t[el.dataset.f] = el.value;
+  autoGrow(el);
+  saveState();
+});
+document.getElementById('tasksView').addEventListener('change', ev => {
+  const el = ev.target;
+  if (!el.matches('[data-tasksel]')) return;
+  const t = taskById(el.dataset.tasksel);
+  if (!t) return;
+  t.status = el.value;
+  el.className = 'wfSel ts-' + el.value;
+  const tr = el.closest('tr');
+  tr.classList.toggle('rowFix', el.value === 'blocked');
+  tr.classList.toggle('rowDone', el.value === 'done');
+  renderTaskSummary();
+  saveState();
+});
+document.getElementById('tasksView').addEventListener('click', ev => {
+  const del = ev.target.closest('[data-taskdel]');
+  if (!del) return;
+  const t = taskById(del.dataset.taskdel);
+  if (!t) return;
+  const drop = () => { tasks = tasks.filter(x => x.id !== t.id); renderTasks(); saveState(); };
+  if ((t.name || t.notes || '').trim()) askConfirm(`Delete the task "${t.name || 'untitled'}"?`, drop);
+  else drop();
+});
+
 /* ---------- Report tab ---------- */
 function itemLabel(n, key){
   const arr = key[0] === 'n' ? n.needs : n.gen;
@@ -1847,6 +1956,7 @@ fitAll();
 renderAudit();
 renderReport();
 renderWf();
+renderTasks();
 showTab(tabFromPath() || 'flow', {replace:true});   /* the URL wins on load */
 loadState();
 </script>

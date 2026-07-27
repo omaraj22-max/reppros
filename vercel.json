@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/:section(flow|audit|workflows|report)", "destination": "/index.html" }
+    { "source": "/:section(flow|audit|workflows|tasks|report)", "destination": "/index.html" }
   ]
 }

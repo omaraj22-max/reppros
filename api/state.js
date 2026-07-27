@@ -55,7 +55,8 @@ module.exports = async (req, res) => {
         nodes: body.nodes,
         edges: body.edges,
         audit: body.audit,
-        workflows: Array.isArray(body.workflows) ? body.workflows : []
+        workflows: Array.isArray(body.workflows) ? body.workflows : [],
+        tasks: Array.isArray(body.tasks) ? body.tasks : []
       };
       await redis(['SET', KEY, JSON.stringify(state)]);
       return res.status(200).json({ ok: true });
