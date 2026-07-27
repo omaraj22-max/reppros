@@ -1182,12 +1182,17 @@ let auditQuery = '';
 let cpFocus = null;                       /* focused checkpoint for keyboard shortcuts */
 
 /* Progress is measured in SECTIONS: each pipeline step and each tool is one section.
-   A section counts as reviewed once every checkpoint in it has been decided
-   (✓, ⏱ or ✕ — nothing left untouched). */
+   A section is "closed" once every checkpoint in it has been decided (✓, ⏱ or ✕).
+   The headline % is the AVERAGE progress across sections, so half-done sections
+   still count and no oversized section drowns out the rest. */
 function globalStats(){
   let total = 0, pass = 0, fail = 0, test = 0;
-  let secTotal = 0, secDone = 0, secStarted = 0;
-  const countSection = s => { if (!s.total) return; secTotal++; if (s.done) secDone++; else if (s.reviewed) secStarted++; };
+  let secTotal = 0, secDone = 0, secStarted = 0, secProgress = 0;
+  const countSection = s => {
+    if (!s.total) return;
+    secTotal++; secProgress += s.reviewed / s.total;
+    if (s.done) secDone++; else if (s.reviewed) secStarted++;
+  };
 
   nodes.forEach(n => { const s = stepStats(n); total += s.total; pass += s.pass; fail += s.fail; test += s.test; countSection(s); });
   let tTotal = 0, tPass = 0, tFail = 0, tTest = 0;
@@ -1199,7 +1204,8 @@ function globalStats(){
           tTotal, tPass, tFail, tTest, tPending: tTotal - tPass - tFail - tTest,
           allTotal, allPass, allFail, allTest, allReviewed, allPending: allTotal - allReviewed,
           secTotal, secDone, secStarted, secOpen: secTotal - secDone - secStarted,
-          pct: secTotal ? Math.round(secDone / secTotal * 100) : 0,      /* avance = secciones revisadas */
+          donePct: secTotal ? Math.round(secDone / secTotal * 100) : 0,  /* solo secciones cerradas */
+          pct: secTotal ? Math.round(secProgress / secTotal * 100) : 0,  /* avance promedio, con credito parcial */
           itemPct: allTotal ? Math.round(allPass / allTotal * 100) : 0};
 }
 
@@ -1232,11 +1238,11 @@ function renderAudit(){
   document.getElementById('auditTop').innerHTML = `
     <div style="display:flex; align-items:baseline; gap:10px;">
       <span class="bigPct num">${g.pct}%</span>
-      <span class="sub">${g.secDone} of ${g.secTotal} sections reviewed</span>
+      <span class="sub">audited · ${g.secDone} of ${g.secTotal} sections closed${g.secStarted ? ` · ${g.secStarted} in progress` : ''}</span>
     </div>
-    <span class="trackWide" title="${g.secDone} reviewed · ${g.secStarted} in progress · ${g.secOpen} not started">
-      <i style="width:${g.secTotal ? g.secDone/g.secTotal*100 : 0}%; background:var(--ok); height:100%; display:block"></i>
-      <i style="width:${g.secTotal ? g.secStarted/g.secTotal*100 : 0}%; background:var(--warn); height:100%; display:block"></i>
+    <span class="trackWide" title="${g.secDone} closed · ${g.secStarted} in progress · ${g.secOpen} not started">
+      <i style="width:${g.donePct}%; background:var(--ok); height:100%; display:block"></i>
+      <i style="width:${Math.max(0, g.pct - g.donePct)}%; background:var(--warn); height:100%; display:block"></i>
     </span>
     <div class="kpis">
       <div class="kpi ok"><div class="k">Working</div><div class="v num">${g.allPass}</div></div>
@@ -1686,7 +1692,7 @@ function renderReport(){
         <div class="rptScore">
           <div class="rptEyebrow">Progress</div>
           <div class="big num">${g.pct}%</div>
-          <div class="cap num">${g.secDone} / ${g.secTotal} sections reviewed</div>
+          <div class="cap num">${g.secDone} / ${g.secTotal} sections closed${g.secStarted ? ` · ${g.secStarted} in progress` : ''}</div>
         </div>
       </div>
     </div>
@@ -1746,7 +1752,7 @@ function buildMarkdown(){
   const g = globalStats();
   const today = new Date().toISOString().slice(0,10);
   let md = `# HubSpot / pipeline audit report — Reputation Pros\n\nGenerated: ${today}\n\n`;
-  md += `## Summary\n\n- **Sections reviewed: ${g.secDone}/${g.secTotal} (${g.pct}%)**\n- Checkpoints working: ${g.allPass}/${g.allTotal} (${g.itemPct}%)\n- Checkpoints failing: ${g.allFail}\n- Checkpoints needing a live test: ${g.allTest}\n- Checkpoints not audited yet: ${g.allPending}\n\n`;
+  md += `## Summary\n\n- **Audited: ${g.pct}%** (average progress across ${g.secTotal} sections)\n- Sections closed: ${g.secDone}/${g.secTotal} · in progress: ${g.secStarted} · not started: ${g.secOpen}\n- Checkpoints reviewed: ${g.allReviewed}/${g.allTotal}\n- Checkpoints working: ${g.allPass}/${g.allTotal} (${g.itemPct}%)\n- Checkpoints failing: ${g.allFail}\n- Checkpoints needing a live test: ${g.allTest}\n- Checkpoints not audited yet: ${g.allPending}\n\n`;
   md += `## Progress by step\n\n| Step | Status | Reviewed | % | Working | Failing | Needs test |\n|---|---|---|---|---|---|---|\n`;
   nodes.forEach(n => {
     const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
