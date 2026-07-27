@@ -127,7 +127,7 @@
   #panel.open{display:block;}
   .pEyebrow{font-size:10px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--ink2);}
   #panel h2{font-size:19px; font-weight:680; letter-spacing:-.02em; margin-top:4px; line-height:1.2;}
-  .pStats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px;}
+  .pStats{display:grid; grid-template-columns:repeat(auto-fit, minmax(64px,1fr)); gap:8px; margin-top:16px;}
   .pStat{border:1px solid var(--line); border-radius:10px; padding:9px 10px; background:var(--panel2);}
   .pStat .k{font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink2);}
   .pStat .v{font-size:21px; font-weight:700; letter-spacing:-.03em; margin-top:2px;}
@@ -204,6 +204,8 @@
   .alertBar{display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px;
     background:var(--badSoft); border:1px solid transparent; font-size:12.5px; margin-bottom:16px; flex-wrap:wrap;}
   .alertBar b{color:var(--bad); font-size:11px; letter-spacing:.06em; text-transform:uppercase;}
+  .alertBar.warn{background:var(--warnSoft);}
+  .alertBar.warn b{color:var(--warn);}
   .alertBar .txt{color:var(--ink); flex:1; min-width:180px;}
   .alertBar button{margin-left:auto; border:0; background:transparent; color:var(--bad); font-weight:650; font-size:12px;}
   .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
@@ -228,8 +230,10 @@
   .tri button + button{border-left:1px solid var(--line);}
   .tri button:hover{background:var(--panel3); color:var(--ink2);}
   .tri button.on-y{background:var(--ok); color:#fff; font-weight:700;}
+  .tri button.on-t{background:var(--warn); color:#fff; font-weight:700;}
   .tri button.on-n{background:var(--bad); color:#fff; font-weight:700;}
   .tri button.on-m{background:var(--panel3); color:var(--ink2); font-weight:700;}
+  .cp.isTest .lbl{color:var(--warn);}
   .cp.focus .tri{border-color:var(--line2); box-shadow:0 0 0 3px var(--blueSoft);}
   .shortcuts{margin-top:16px; font-size:11px; color:var(--ink2);}
   .shortcuts kbd{font-family:var(--mono); background:var(--panel3); border-radius:4px; padding:1px 5px; margin:0 2px;}
@@ -333,6 +337,7 @@
   .rptTable td:last-child, .rptTable th:last-child{text-align:right;}
   .liTight{font-size:12.5px; padding:5px 0 5px 11px; border-left:2px solid var(--line2); margin:5px 0;}
   .liTight.f{border-left-color:var(--bad);}
+  .liTight.t{border-left-color:var(--warn);}
   .liTight small{color:var(--ink2);}
 
   /* ---------------- Modal ---------------- */
@@ -474,7 +479,8 @@
         <div class="filterChips" id="auditFilters">
           <button data-filter="all" class="on">All</button>
           <button data-filter="fail">Failing</button>
-          <button data-filter="pending">Pending</button>
+          <button data-filter="test">Needs test</button>
+          <button data-filter="pending">Untouched</button>
         </div>
       </div>
       <div class="auditNavList">
@@ -761,12 +767,19 @@ function toolAudit(name){
   if (!audit.tools[name] || !audit.tools[name].checks) audit.tools[name] = {checks:{}, notes:(audit.tools[name] && audit.tools[name].notes) || ''};
   return audit.tools[name];
 }
+/* A checkpoint holds: true = works · false = broken · 'test' = reviewed, needs a live test · undefined = untouched */
+function tally(values){
+  let pass = 0, fail = 0, test = 0;
+  values.forEach(v => { if (v === true) pass++; else if (v === false) fail++; else if (v === 'test') test++; });
+  const total = values.length, reviewed = pass + fail + test;
+  return {total, pass, fail, test, reviewed, pending: total - reviewed,
+          pct: total ? Math.round(pass/total*100) : 0,
+          revPct: total ? Math.round(reviewed/total*100) : 0,
+          done: total > 0 && reviewed === total};
+}
 function toolStats(t){
   const ta = toolAudit(t.name);
-  let pass = 0, fail = 0;
-  t.items.forEach((_, i) => { if (ta.checks[i] === true) pass++; else if (ta.checks[i] === false) fail++; });
-  const total = t.items.length;
-  return {total, pass, fail, pending: total - pass - fail, pct: total ? Math.round(pass/total*100) : 0};
+  return tally(t.items.map((_, i) => ta.checks[i]));
 }
 function isGroup(t){ return typeof t === 'string' && t.startsWith('##'); }
 function checkables(n){
@@ -776,11 +789,8 @@ function checkables(n){
   return out;
 }
 function stepStats(n){
-  const items = checkables(n), sa = stepAudit(n.id);
-  let pass = 0, fail = 0;
-  items.forEach(it => { if (sa.checks[it.key] === true) pass++; else if (sa.checks[it.key] === false) fail++; });
-  const total = items.length;
-  return {total, pass, fail, pending: total - pass - fail, pct: total ? Math.round(pass/total*100) : 0};
+  const sa = stepAudit(n.id);
+  return tally(checkables(n).map(it => sa.checks[it.key]));
 }
 
 const svg = document.getElementById('svg');
@@ -833,7 +843,8 @@ function render(){
     const sel = selectedNode === n.id;
     const isTarget = (drag && drag.type === 'connect' && drag.hover === n.id) || connSrc === n.id;
     const stroke = isTarget ? 'var(--ink)' : sel ? 'var(--blue)' : 'var(--line)';
-    const barW = Math.max(0, Math.min(100, ss.pct)) / 100 * (NODE_W - 26);
+    const barW = Math.max(0, Math.min(100, ss.revPct)) / 100 * (NODE_W - 26);
+    const barCol = dotFor(ss.pass, ss.fail, ss.total);
     h += `<g class="node-g" data-node="${n.id}">
       ${sel ? `<rect x="${n.x-3}" y="${n.y-3}" width="${NODE_W+6}" height="${NODE_H+6}" rx="14" fill="var(--blueSoft)"></rect>` : ''}
       <rect class="body" x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="11" fill="var(--panel)"
@@ -843,7 +854,7 @@ function render(){
       <text x="${n.x + 13}" y="${n.y + 38}" font-size="13" font-weight="650" fill="var(--ink)">${esc(n.name.length > 27 ? n.name.slice(0,26) + '…' : n.name)}</text>
       <text x="${n.x + 13}" y="${n.y + 53}" font-size="11" fill="var(--ink2)">${esc(n.owner.length > 30 ? n.owner.slice(0,29) + '…' : n.owner)}</text>
       <rect x="${n.x + 13}" y="${n.y + 61}" width="${NODE_W - 26}" height="3" rx="1.5" fill="var(--panel3)"></rect>
-      ${barW > 0 ? `<rect x="${n.x + 13}" y="${n.y + 61}" width="${barW}" height="3" rx="1.5" fill="${st.c}"></rect>` : ''}
+      ${barW > 0 ? `<rect x="${n.x + 13}" y="${n.y + 61}" width="${barW}" height="3" rx="1.5" fill="${barCol}"></rect>` : ''}
     </g>`;
   });
   /* temp connection line while dragging from a + handle */
@@ -1115,9 +1126,10 @@ function fillPanel(n){
   document.getElementById('pEyebrow').textContent = 'Step · ' + c.full.toUpperCase();
   document.getElementById('pTitle').textContent = n.name;
   document.getElementById('pStats').innerHTML = `
-    <div class="pStat"><div class="k">Audited</div><div class="v num">${ss.pct}<small>%</small></div></div>
-    <div class="pStat ok"><div class="k">Confirmed</div><div class="v num">${ss.pass}</div></div>
-    <div class="pStat ${ss.fail ? 'bad' : ''}"><div class="k">Failing</div><div class="v num">${ss.fail}</div></div>`;
+    <div class="pStat"><div class="k">Reviewed</div><div class="v num">${ss.revPct}<small>%</small></div></div>
+    <div class="pStat ok"><div class="k">Works</div><div class="v num">${ss.pass}</div></div>
+    <div class="pStat ${ss.fail ? 'bad' : ''}"><div class="k">Fails</div><div class="v num">${ss.fail}</div></div>
+    <div class="pStat"><div class="k">Test</div><div class="v num" style="color:${ss.test ? 'var(--warn)' : 'inherit'}">${ss.test}</div></div>`;
   document.getElementById('pStatus').innerHTML = STATUS_ORDER.map(k =>
     `<button data-st="${k}" class="${sa.status === k ? 'on ' + STATUS[k].cls : ''}">${STATUS[k].lbl}</button>`).join('');
   const tw = document.getElementById('pToolsWrap');
@@ -1169,17 +1181,26 @@ let auditFilter = 'all';                  /* all | fail | pending */
 let auditQuery = '';
 let cpFocus = null;                       /* focused checkpoint for keyboard shortcuts */
 
+/* Progress is measured in SECTIONS: each pipeline step and each tool is one section.
+   A section counts as reviewed once every checkpoint in it has been decided
+   (✓, ⏱ or ✕ — nothing left untouched). */
 function globalStats(){
-  let total = 0, pass = 0, fail = 0;
-  nodes.forEach(n => { const s = stepStats(n); total += s.total; pass += s.pass; fail += s.fail; });
-  let tTotal = 0, tPass = 0, tFail = 0;
-  DEFAULT_TOOLS.forEach(t => { const s = toolStats(t); tTotal += s.total; tPass += s.pass; tFail += s.fail; });
-  const allTotal = total + tTotal, allPass = pass + tPass;
-  return {total, pass, fail, pending: total - pass - fail,
-          tTotal, tPass, tFail, tPending: tTotal - tPass - tFail,
-          allTotal, allPass, allFail: fail + tFail, allPending: (total - pass - fail) + (tTotal - tPass - tFail),
-          pct: allTotal ? Math.round(allPass / allTotal * 100) : 0,
-          itemPct: total ? Math.round(pass / total * 100) : 0};
+  let total = 0, pass = 0, fail = 0, test = 0;
+  let secTotal = 0, secDone = 0, secStarted = 0;
+  const countSection = s => { if (!s.total) return; secTotal++; if (s.done) secDone++; else if (s.reviewed) secStarted++; };
+
+  nodes.forEach(n => { const s = stepStats(n); total += s.total; pass += s.pass; fail += s.fail; test += s.test; countSection(s); });
+  let tTotal = 0, tPass = 0, tFail = 0, tTest = 0;
+  DEFAULT_TOOLS.forEach(t => { const s = toolStats(t); tTotal += s.total; tPass += s.pass; tFail += s.fail; tTest += s.test; countSection(s); });
+
+  const allTotal = total + tTotal, allPass = pass + tPass, allFail = fail + tFail, allTest = test + tTest;
+  const allReviewed = allPass + allFail + allTest;
+  return {total, pass, fail, test, pending: total - pass - fail - test,
+          tTotal, tPass, tFail, tTest, tPending: tTotal - tPass - tFail - tTest,
+          allTotal, allPass, allFail, allTest, allReviewed, allPending: allTotal - allReviewed,
+          secTotal, secDone, secStarted, secOpen: secTotal - secDone - secStarted,
+          pct: secTotal ? Math.round(secDone / secTotal * 100) : 0,      /* avance = secciones revisadas */
+          itemPct: allTotal ? Math.round(allPass / allTotal * 100) : 0};
 }
 
 /* Nav dot, driven purely by the checkpoints:
@@ -1199,7 +1220,8 @@ function matchQuery(txt){ return !auditQuery || String(txt).toLowerCase().includ
 /* does this checkpoint pass the active filter? */
 function passFilter(v){
   if (auditFilter === 'fail') return v === false;
-  if (auditFilter === 'pending') return v !== true && v !== false;
+  if (auditFilter === 'test') return v === 'test';
+  if (auditFilter === 'pending') return v === undefined;
   return true;
 }
 
@@ -1210,30 +1232,31 @@ function renderAudit(){
   document.getElementById('auditTop').innerHTML = `
     <div style="display:flex; align-items:baseline; gap:10px;">
       <span class="bigPct num">${g.pct}%</span>
-      <span class="sub">audited · ${g.allPass} of ${g.allTotal} checkpoints</span>
+      <span class="sub">${g.secDone} of ${g.secTotal} sections reviewed</span>
     </div>
-    <span class="trackWide">
-      <i style="width:${g.allTotal ? g.allPass/g.allTotal*100 : 0}%; background:var(--ok); height:100%; display:block"></i>
-      <i style="width:${g.allTotal ? g.allFail/g.allTotal*100 : 0}%; background:var(--bad); height:100%; display:block"></i>
+    <span class="trackWide" title="${g.secDone} reviewed · ${g.secStarted} in progress · ${g.secOpen} not started">
+      <i style="width:${g.secTotal ? g.secDone/g.secTotal*100 : 0}%; background:var(--ok); height:100%; display:block"></i>
+      <i style="width:${g.secTotal ? g.secStarted/g.secTotal*100 : 0}%; background:var(--warn); height:100%; display:block"></i>
     </span>
     <div class="kpis">
-      <div class="kpi ok"><div class="k">Confirmed</div><div class="v num">${g.allPass}</div></div>
+      <div class="kpi ok"><div class="k">Working</div><div class="v num">${g.allPass}</div></div>
       <div class="kpi ${g.allFail ? 'bad' : ''}"><div class="k">Failing</div><div class="v num">${g.allFail}</div></div>
-      <div class="kpi"><div class="k">Pending</div><div class="v num">${g.allPending}</div></div>
+      <div class="kpi"><div class="k">Needs test</div><div class="v num" style="color:var(--warn)">${g.allTest}</div></div>
+      <div class="kpi"><div class="k">Untouched</div><div class="v num">${g.allPending}</div></div>
     </div>`;
 
   /* --- left nav --- */
   const tSel = auditSel.kind === 'tools' ? ' on' : '';
   const tDot = dotFor(g.tPass, g.tFail, g.tTotal);
   document.getElementById('navTools').innerHTML =
-    `<button class="navItem${tSel}" data-nav="tools"><i style="background:${tDot}"></i>
-      <span class="nm">${DEFAULT_TOOLS.length} tools</span><span class="ct num">${g.tPass}/${g.tTotal}</span></button>`;
+    `<button class="navItem${tSel}" data-nav="tools" title="${g.tPass + g.tFail + g.tTest} of ${g.tTotal} checkpoints reviewed"><i style="background:${tDot}"></i>
+      <span class="nm">${DEFAULT_TOOLS.length} tools</span><span class="ct num">${g.tPass + g.tFail + g.tTest}/${g.tTotal}</span></button>`;
 
   document.getElementById('navSteps').innerHTML = nodes.map(n => {
     const ss = stepStats(n);
     const on = auditSel.kind === 'step' && auditSel.id === n.id ? ' on' : '';
-    return `<button class="navItem${on}" data-nav="step" data-id="${n.id}"><i style="background:${stepDot(n)}"></i>
-      <span class="nm">${esc(n.name)}</span><span class="ct num">${ss.pass}/${ss.total}</span></button>`;
+    return `<button class="navItem${on}" data-nav="step" data-id="${n.id}" title="${ss.reviewed} of ${ss.total} checkpoints reviewed"><i style="background:${stepDot(n)}"></i>
+      <span class="nm">${esc(n.name)}</span><span class="ct num">${ss.reviewed}/${ss.total}</span></button>`;
   }).join('');
 
   document.getElementById('auditSearch').placeholder = `Search ${g.allTotal} checkpoints…`;
@@ -1243,19 +1266,20 @@ function renderAudit(){
     auditSel.kind === 'tools' ? renderToolsDetail() : renderStepDetail();
 }
 
-/* three-state control: ✓ / · / ✕ */
+/* four-state control: ✓ works · ⏱ reviewed, needs a live test · ✕ broken · · untouched */
 function triHtml(dataAttrs, v){
   return `<span class="tri" ${dataAttrs}>
-    <button data-set="yes" class="${v === true ? 'on-y' : ''}" title="Works (1)">✓</button>
-    <button data-set="mid" class="${v !== true && v !== false ? 'on-m' : ''}" title="Not audited (2)">·</button>
-    <button data-set="no"  class="${v === false ? 'on-n' : ''}" title="Missing or broken (3)">✕</button>
+    <button data-set="yes"  class="${v === true ? 'on-y' : ''}" title="Works (1)">✓</button>
+    <button data-set="test" class="${v === 'test' ? 'on-t' : ''}" title="Reviewed — needs a live test (2)">⏱</button>
+    <button data-set="no"   class="${v === false ? 'on-n' : ''}" title="Missing or broken (3)">✕</button>
+    <button data-set="mid"  class="${v === undefined ? 'on-m' : ''}" title="Not audited yet (4)">·</button>
   </span>`;
 }
 function cpRow(dataAttrs, v, txt, key){
-  const cls = v === false ? ' isFail' : v === true ? ' isOk' : '';
+  const cls = v === false ? ' isFail' : v === true ? ' isOk' : v === 'test' ? ' isTest' : '';
   const foc = cpFocus === key ? ' focus' : '';
   return `<div class="cp${cls}${foc}" data-cp="${key}" tabindex="0">
-    ${triHtml(dataAttrs, v)}<span class="lbl">${esc(txt)}</span><span class="kbd">1 · 2 · 3</span></div>`;
+    ${triHtml(dataAttrs, v)}<span class="lbl">${esc(txt)}</span><span class="kbd">1 · 2 · 3 · 4</span></div>`;
 }
 
 function renderStepDetail(){
@@ -1277,10 +1301,10 @@ function renderStepDetail(){
   };
 
   const failing = checkables(n).filter(it => sa.checks[it.key] === false);
-  const needN = n.needs.filter(t => !isGroup(t)).length;
-  const genN = n.gen.filter(t => !isGroup(t)).length;
-  const needPass = n.needs.filter((t,i) => !isGroup(t) && sa.checks['n'+i] === true).length;
-  const genPass = n.gen.filter((t,i) => !isGroup(t) && sa.checks['g'+i] === true).length;
+  const needsTest = checkables(n).filter(it => sa.checks[it.key] === 'test');
+  const colStats = (arr, prefix) => tally(arr.map((t,i) => isGroup(t) ? null : sa.checks[prefix+i])
+                                             .filter((_,i) => !isGroup(arr[i])));
+  const needS = colStats(n.needs, 'n'), genS = colStats(n.gen, 'g');
 
   return `
     <div class="detailHead">
@@ -1297,13 +1321,17 @@ function renderStepDetail(){
       <span class="txt">${failing.slice(0,3).map(f => esc(f.txt)).join(' · ')}${failing.length > 3 ? ' …' : ''}</span>
       <button data-jumpfail="1">Jump to first ↓</button>
     </div>` : ''}
+    ${needsTest.length ? `<div class="alertBar warn">
+      <b>${needsTest.length} needs test</b>
+      <span class="txt">${needsTest.slice(0,3).map(f => esc(f.txt)).join(' · ')}${needsTest.length > 3 ? ' …' : ''}</span>
+    </div>` : ''}
     <div class="cols">
       <div class="colCard">
-        <div class="ch"><h4>Information required</h4><span class="ct num">${needPass} / ${needN}</span></div>
+        <div class="ch"><h4>Information required</h4><span class="ct num">${needS.reviewed} / ${needS.total} reviewed</span></div>
         ${renderList(n.needs, 'n')}
       </div>
       <div class="colCard">
-        <div class="ch"><h4>Information generated</h4><span class="ct num">${genPass} / ${genN}</span></div>
+        <div class="ch"><h4>Information generated</h4><span class="ct num">${genS.reviewed} / ${genS.total} reviewed</span></div>
         ${renderList(n.gen, 'g')}
       </div>
     </div>
@@ -1311,7 +1339,7 @@ function renderStepDetail(){
       <div class="pLabel" style="margin-top:0">Audit notes</div>
       <textarea class="fld" data-notes="${n.id}" placeholder="What is broken, what to fix in HubSpot/GHL, owners…">${esc(sa.notes)}</textarea>
     </div>
-    <div class="shortcuts">Shortcuts: <kbd>1</kbd> works · <kbd>2</kbd> not audited · <kbd>3</kbd> fails · <kbd>↑</kbd><kbd>↓</kbd> to move</div>`;
+    <div class="shortcuts">Shortcuts: <kbd>1</kbd> works · <kbd>2</kbd> needs test · <kbd>3</kbd> fails · <kbd>4</kbd> clear · <kbd>↑</kbd><kbd>↓</kbd> to move</div>`;
 }
 
 function renderToolsDetail(){
@@ -1327,7 +1355,7 @@ function renderToolsDetail(){
     });
     if (!shown) return '';
     return `<div class="colCard" style="margin-bottom:14px">
-      <div class="ch"><h4>${esc(t.name)}</h4><span class="ct num">${ts.pass} / ${ts.total}${ts.fail ? ` · ${ts.fail} ✕` : ''}</span></div>
+      <div class="ch"><h4>${esc(t.name)}</h4><span class="ct num">${ts.reviewed} / ${ts.total} reviewed${ts.fail ? ` · ${ts.fail} ✕` : ''}${ts.test ? ` · ${ts.test} ⏱` : ''}</span></div>
       ${rows}
       <input type="text" class="fld" style="margin-top:12px" placeholder="Notes for this tool…"
         data-toolnote="${ti}" value="${esc(ta.notes)}">
@@ -1338,15 +1366,17 @@ function renderToolsDetail(){
     <div class="detailHead">
       <div>
         <h2>Tools & integrations</h2>
-        <div class="meta">${DEFAULT_TOOLS.length} tools · ${g.tPass} of ${g.tTotal} confirmed${g.tFail ? ` · ${g.tFail} failing` : ''}</div>
+        <div class="meta">${DEFAULT_TOOLS.length} tools · ${g.tPass + g.tFail + g.tTest} of ${g.tTotal} reviewed${g.tFail ? ` · ${g.tFail} failing` : ''}${g.tTest ? ` · ${g.tTest} need a live test` : ''}</div>
       </div>
     </div>
     ${cards || '<div class="emptyNote">Nothing here with the current filter.</div>'}
-    <div class="shortcuts">Shortcuts: <kbd>1</kbd> works · <kbd>2</kbd> not audited · <kbd>3</kbd> fails · <kbd>↑</kbd><kbd>↓</kbd> to move</div>`;
+    <div class="shortcuts">Shortcuts: <kbd>1</kbd> works · <kbd>2</kbd> needs test · <kbd>3</kbd> fails · <kbd>4</kbd> clear · <kbd>↑</kbd><kbd>↓</kbd> to move</div>`;
 }
 
 /* ---- audit interaction ---- */
 const auditViewEl = document.getElementById('auditView');
+const SET_VALUES = {yes:true, test:'test', no:false, mid:undefined};
+const KEY_VALUES = {'1':true, '2':'test', '3':false, '4':undefined};   /* mismo orden que los botones */
 
 auditViewEl.addEventListener('click', ev => {
   const nav = ev.target.closest('[data-nav]');
@@ -1373,7 +1403,7 @@ auditViewEl.addEventListener('click', ev => {
   const setBtn = ev.target.closest('.tri [data-set]');
   if (setBtn){
     const tri = setBtn.closest('.tri');
-    const val = setBtn.dataset.set === 'yes' ? true : setBtn.dataset.set === 'no' ? false : undefined;
+    const val = SET_VALUES[setBtn.dataset.set];
     applyCheck(tri, val);
     const row = setBtn.closest('.cp');
     if (row) cpFocus = row.dataset.cp;
@@ -1421,10 +1451,9 @@ auditViewEl.addEventListener('keydown', ev => {
     if (idx < 0) idx = 0;
     focusCp(rows[idx]);
     rows[idx].scrollIntoView({block:'nearest'});
-  } else if (['1','2','3'].includes(ev.key) && idx >= 0){
+  } else if (Object.prototype.hasOwnProperty.call(KEY_VALUES, ev.key) && idx >= 0){
     ev.preventDefault();
-    const val = ev.key === '1' ? true : ev.key === '3' ? false : undefined;
-    applyCheck(rows[idx].querySelector('.tri'), val);
+    applyCheck(rows[idx].querySelector('.tri'), KEY_VALUES[ev.key]);
     renderAudit(); restoreFocus();
   }
 });
@@ -1564,14 +1593,15 @@ function renderReport(){
   const dateStr = `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}, ${d.getFullYear()}`;
 
   /* --- progress by step --- */
+  const pctOf = (part, total) => total ? part / total * 100 : 0;
   const stepBars = nodes.map(n => {
-    const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
-    const barCol = ss.fail ? 'var(--bad)' : st.c === 'var(--line2)' ? 'var(--line2)' : st.c;
+    const ss = stepStats(n);
     return `<div class="barRow">
-      <div class="bt"><span>${esc(n.name)}</span><span class="num">${ss.pct}%</span></div>
-      <div class="bTrack">
-        <i style="width:${ss.pct}%; background:${barCol}; height:100%; display:block"></i>
-        <i style="width:${ss.total ? Math.round(ss.fail/ss.total*100) : 0}%; background:var(--bad); height:100%; display:block"></i>
+      <div class="bt"><span>${esc(n.name)}</span><span class="num">${ss.revPct}%</span></div>
+      <div class="bTrack" title="${ss.pass} working · ${ss.test} need a test · ${ss.fail} failing · ${ss.pending} untouched">
+        <i style="width:${pctOf(ss.pass, ss.total)}%; background:var(--ok); height:100%; display:block"></i>
+        <i style="width:${pctOf(ss.test, ss.total)}%; background:var(--warn); height:100%; display:block"></i>
+        <i style="width:${pctOf(ss.fail, ss.total)}%; background:var(--bad); height:100%; display:block"></i>
       </div>
     </div>`;
   }).join('');
@@ -1606,26 +1636,28 @@ function renderReport(){
   /* --- tools table --- */
   const toolRows = DEFAULT_TOOLS.map(t => {
     const ts = toolStats(t);
-    return `<tr><td>${esc(t.name)}</td><td class="num">${ts.pass}/${ts.total}</td>
-      <td class="num" style="color:${ts.fail ? 'var(--bad)' : 'var(--ink2)'}">${ts.fail || '—'}</td></tr>`;
+    return `<tr><td>${esc(t.name)}</td><td class="num">${ts.reviewed}/${ts.total}</td>
+      <td class="num" style="color:${ts.fail ? 'var(--bad)' : 'var(--ink2)'}">${ts.fail || '—'}</td>
+      <td class="num" style="color:${ts.test ? 'var(--warn)' : 'var(--ink2)'}">${ts.test || '—'}</td></tr>`;
   }).join('');
 
   /* --- detailed listings --- */
-  let failHtml = '', missHtml = '';
+  let failHtml = '', testHtml = '', missHtml = '';
+  const fileLine = (v, line) => { if (v === false) failHtml += line; else if (v === 'test') testHtml += line; else if (v !== true) missHtml += line; };
   nodes.forEach(n => {
     const sa = stepAudit(n.id);
     checkables(n).forEach(it => {
       const v = sa.checks[it.key], lbl = itemLabel(n, it.key);
-      const line = `<div class="liTight ${v === false ? 'f' : ''}"><b>${esc(n.name)}</b> · <small>${lbl.side}${lbl.group ? ' → ' + esc(lbl.group) : ''}</small><br>${esc(lbl.txt)}</div>`;
-      if (v === false) failHtml += line; else if (v !== true) missHtml += line;
+      const cls = v === false ? ' f' : v === 'test' ? ' t' : '';
+      fileLine(v, `<div class="liTight${cls}"><b>${esc(n.name)}</b> · <small>${lbl.side}${lbl.group ? ' → ' + esc(lbl.group) : ''}</small><br>${esc(lbl.txt)}</div>`);
     });
   });
   DEFAULT_TOOLS.forEach(t => {
     const ta = toolAudit(t.name);
     t.items.forEach((it, i) => {
       const v = ta.checks[i];
-      const line = `<div class="liTight ${v === false ? 'f' : ''}"><b>${esc(t.name)}</b><br>${esc(it)}</div>`;
-      if (v === false) failHtml += line; else if (v !== true) missHtml += line;
+      const cls = v === false ? ' f' : v === 'test' ? ' t' : '';
+      fileLine(v, `<div class="liTight${cls}"><b>${esc(t.name)}</b><br>${esc(it)}</div>`);
     });
   });
   let notesHtml = '';
@@ -1638,7 +1670,6 @@ function renderReport(){
     if ((ta.notes || '').trim()) notesHtml += `<div class="liTight"><b>${esc(t.name)}</b><br>${esc(ta.notes)}</div>`;
   });
 
-  const brokenCount = nodes.filter(n => stepAudit(n.id).status === 'fail').length;
   const logo = document.querySelector('.brandPlate img').src;
 
   document.getElementById('reportBody').innerHTML = `
@@ -1649,13 +1680,13 @@ function renderReport(){
           <img src="${logo}" alt="Reputation Pros">
           <div class="rptEyebrow">Pipeline audit · ${monthYear}</div>
           <h1>End-to-end sales process audit</h1>
-          <div class="lede">${nodes.length} steps · ${DEFAULT_TOOLS.length} tools · ${g.allTotal} checkpoints.
+          <div class="lede">${g.secTotal} sections · ${nodes.length} steps · ${DEFAULT_TOOLS.length} tools · ${g.allTotal} checkpoints.
             Fillout → HubSpot → GoHighLevel → Slack → Stripe.</div>
         </div>
         <div class="rptScore">
           <div class="rptEyebrow">Progress</div>
           <div class="big num">${g.pct}%</div>
-          <div class="cap num">${g.allPass} / ${g.allTotal} verified</div>
+          <div class="cap num">${g.secDone} / ${g.secTotal} sections reviewed</div>
         </div>
       </div>
     </div>
@@ -1663,8 +1694,8 @@ function renderReport(){
     <div class="rptKpis">
       <div><div class="k">Working</div><div class="v num" style="color:var(--ok)">${g.allPass}</div></div>
       <div><div class="k">Failing</div><div class="v num" style="color:var(--bad)">${g.allFail}</div></div>
-      <div><div class="k">Pending</div><div class="v num" style="color:var(--ink2)">${g.allPending}</div></div>
-      <div><div class="k">Broken steps</div><div class="v num">${brokenCount} <small>of ${nodes.length}</small></div></div>
+      <div><div class="k">Needs live test</div><div class="v num" style="color:var(--warn)">${g.allTest}</div></div>
+      <div><div class="k">Untouched</div><div class="v num" style="color:var(--ink2)">${g.allPending}</div></div>
     </div>
 
     <div class="rptBody">
@@ -1683,7 +1714,7 @@ function renderReport(){
     <div class="rptSection">
       <div class="rptH">Tools &amp; integrations</div>
       <table class="rptTable">
-        <thead><tr><th>Tool</th><th>Confirmed</th><th>Failing</th></tr></thead>
+        <thead><tr><th>Tool</th><th>Reviewed</th><th>Failing</th><th>Needs test</th></tr></thead>
         <tbody>${toolRows}</tbody>
       </table>
     </div>
@@ -1694,7 +1725,12 @@ function renderReport(){
     </div>
 
     <div class="rptSection">
-      <div class="rptH">Pending verification (${g.allPending})</div>
+      <div class="rptH" style="color:var(--warn)">Needs a live test (${g.allTest})</div>
+      <div style="margin-top:10px">${testHtml || '<div class="liTight"><small>Nothing waiting on a live test.</small></div>'}</div>
+    </div>
+
+    <div class="rptSection">
+      <div class="rptH">Not audited yet (${g.allPending})</div>
       <div style="margin-top:10px">${missHtml || '<div class="liTight"><small>Everything audited. 🎉</small></div>'}</div>
     </div>
 
@@ -1710,14 +1746,14 @@ function buildMarkdown(){
   const g = globalStats();
   const today = new Date().toISOString().slice(0,10);
   let md = `# HubSpot / pipeline audit report — Reputation Pros\n\nGenerated: ${today}\n\n`;
-  md += `## Summary\n\n- **Overall completion: ${g.pct}%**\n- Data points confirmed: ${g.pass}/${g.total} (${g.itemPct}%)\n- Data points failing: ${g.fail}\n- Data points not audited: ${g.pending}\n- Tools confirmed: ${g.tPass}/${g.tTotal} (${g.tFail} failing)\n\n`;
-  md += `## Completion by step\n\n| Step | Status | Confirmed | % | Failing |\n|---|---|---|---|---|\n`;
+  md += `## Summary\n\n- **Sections reviewed: ${g.secDone}/${g.secTotal} (${g.pct}%)**\n- Checkpoints working: ${g.allPass}/${g.allTotal} (${g.itemPct}%)\n- Checkpoints failing: ${g.allFail}\n- Checkpoints needing a live test: ${g.allTest}\n- Checkpoints not audited yet: ${g.allPending}\n\n`;
+  md += `## Progress by step\n\n| Step | Status | Reviewed | % | Working | Failing | Needs test |\n|---|---|---|---|---|---|---|\n`;
   nodes.forEach(n => {
     const ss = stepStats(n), st = STATUS[stepAudit(n.id).status];
-    md += `| ${n.name} | ${st.md} | ${ss.pass}/${ss.total} | ${ss.pct}% | ${ss.fail} |\n`;
+    md += `| ${n.name} | ${st.md} | ${ss.reviewed}/${ss.total} | ${ss.revPct}% | ${ss.pass} | ${ss.fail} | ${ss.test} |\n`;
   });
-  md += `\n## Completion by tool / integration\n\n| Tool | Confirmed | % | Failing |\n|---|---|---|---|\n`;
-  DEFAULT_TOOLS.forEach(t => { const ts = toolStats(t); md += `| ${t.name} | ${ts.pass}/${ts.total} | ${ts.pct}% | ${ts.fail} |\n`; });
+  md += `\n## Progress by tool / integration\n\n| Tool | Reviewed | % | Working | Failing | Needs test |\n|---|---|---|---|---|---|\n`;
+  DEFAULT_TOOLS.forEach(t => { const ts = toolStats(t); md += `| ${t.name} | ${ts.reviewed}/${ts.total} | ${ts.revPct}% | ${ts.pass} | ${ts.fail} | ${ts.test} |\n`; });
   md += `\n## ❌ Failing items\n\n`;
   let any = false;
   nodes.forEach(n => {
@@ -1728,17 +1764,25 @@ function buildMarkdown(){
   });
   DEFAULT_TOOLS.forEach(t => { const ta = toolAudit(t.name); t.items.forEach((it, i) => { if (ta.checks[i] === false){ md += `- **Tool: ${t.name}**: ${it}\n`; any = true; } }); });
   if (!any) md += `_None marked as failing._\n`;
-  md += `\n## ⏳ Pending verification\n\n`;
-  any = false;
-  nodes.forEach(n => {
-    const sa = stepAudit(n.id);
-    checkables(n).forEach(it => {
-      const v = sa.checks[it.key];
-      if (v !== true && v !== false){ const l = itemLabel(n, it.key); md += `- **${n.name}** (${l.side}${l.group ? ' → ' + l.group : ''}): ${l.txt}\n`; any = true; }
+
+  /* lo que ya se revisó pero necesita una corrida real para validarse */
+  const listBy = (title, keep, emptyMsg) => {
+    md += `\n## ${title}\n\n`;
+    let found = false;
+    nodes.forEach(n => {
+      const sa = stepAudit(n.id);
+      checkables(n).forEach(it => {
+        if (keep(sa.checks[it.key])){ const l = itemLabel(n, it.key); md += `- **${n.name}** (${l.side}${l.group ? ' → ' + l.group : ''}): ${l.txt}\n`; found = true; }
+      });
     });
-  });
-  DEFAULT_TOOLS.forEach(t => { const ta = toolAudit(t.name); t.items.forEach((it, i) => { const v = ta.checks[i]; if (v !== true && v !== false){ md += `- **Tool: ${t.name}**: ${it}\n`; any = true; } }); });
-  if (!any) md += `_Everything audited._\n`;
+    DEFAULT_TOOLS.forEach(t => {
+      const ta = toolAudit(t.name);
+      t.items.forEach((it, i) => { if (keep(ta.checks[i])){ md += `- **Tool: ${t.name}**: ${it}\n`; found = true; } });
+    });
+    if (!found) md += emptyMsg + '\n';
+  };
+  listBy('⏱ Needs a live test', v => v === 'test', '_Nothing waiting on a live test._');
+  listBy('⏳ Not audited yet', v => v === undefined, '_Everything audited._');
   let notes = '';
   nodes.forEach(n => { const sa = stepAudit(n.id); if (sa.notes.trim()) notes += `### ${n.name} (${STATUS[sa.status].lbl})\n\n${sa.notes}\n\n`; });
   DEFAULT_TOOLS.forEach(t => { const ta = toolAudit(t.name); if (ta.notes.trim()) notes += `### Tool: ${t.name}\n\n${ta.notes}\n\n`; });
