@@ -5,11 +5,26 @@ Herramienta de flowchart + audit checklist + reporte con **estado compartido ent
 ## Estructura
 
 ```
-index.html      → la app completa (flow chart, audit, report)
+index.html      → la app completa (flow chart, audit, workflows, report)
 api/state.js    → serverless function (runtime Node.js) que lee/escribe el key "audit-state" en Redis
+vercel.json     → reescribe /flow /audit /workflows /report a index.html
 ```
 
-No hace falta `vercel.json` ni `package.json`: Vercel sirve `index.html` como estático y detecta `api/state.js` como serverless function automáticamente (zero-config).
+No hace falta `package.json`: Vercel sirve `index.html` como estático y detecta `api/state.js` como serverless function automáticamente.
+
+## Rutas
+
+Cada sección tiene su propia URL, así que se puede compartir y sobrevive al refresh:
+
+| URL | Sección |
+|---|---|
+| `/` o `/flow` | Flow chart |
+| `/audit` | Audit checklist |
+| `/workflows` | Workflow audits |
+| `/report` | Report |
+
+`vercel.json` reescribe esas rutas a `index.html` y la app lee `location.pathname` al cargar.
+Abriendo el archivo directo (`file://`) no hay rutas, así que cae a un `#` (`index.html#/audit`).
 
 ## Setup en Vercel
 

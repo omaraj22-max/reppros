@@ -1066,7 +1066,24 @@ document.getElementById('edgeLabel').addEventListener('input', ev => {
 /* ---------- Tabs ---------- */
 const tabs = {flow:document.getElementById('tabFlow'), audit:document.getElementById('tabAudit'), wf:document.getElementById('tabWf'), report:document.getElementById('tabReport')};
 const views = {flow:document.getElementById('flowView'), audit:document.getElementById('auditView'), wf:document.getElementById('wfView'), report:document.getElementById('reportView')};
-function showTab(k){
+/* Cada sección tiene su propia URL: /flow /audit /workflows /report
+   (vercel.json reescribe esas rutas a index.html) */
+const ROUTES = {flow:'/flow', audit:'/audit', wf:'/workflows', report:'/report'};
+const TITLES = {flow:'Flow chart', audit:'Audit checklist', wf:'Workflows', report:'Report'};
+let currentTab = 'flow';
+
+function tabFromPath(){
+  const match = key => Object.keys(ROUTES).find(k => ROUTES[k] === '/' + key) || (key === 'workflow' ? 'wf' : null);
+  /* el # manda si existe (es el respaldo para file://, donde no hay rutas) */
+  const hash = (location.hash || '').replace(/^#\/?/, '').toLowerCase();
+  if (hash && match(hash)) return match(hash);
+  const seg = (location.pathname.split('/').filter(Boolean).pop() || '').replace(/\.html?$/, '').toLowerCase();
+  return match(seg);
+}
+
+function showTab(k, opts){
+  const o = opts || {};
+  currentTab = k;
   Object.keys(tabs).forEach(x => tabs[x].classList.toggle('active', x === k));
   views.flow.classList.toggle('hidden', k !== 'flow');
   views.audit.classList.toggle('active', k === 'audit');
@@ -1076,11 +1093,19 @@ function showTab(k){
   if (k === 'audit') renderAudit();
   if (k === 'wf') renderWf();
   if (k === 'report') renderReport();
+  document.title = TITLES[k] + ' · Pipeline Audit — Reputation Pros';
+  if (o.nav !== false) navigate(k, o.replace);
 }
-tabs.flow.onclick = () => showTab('flow');
-tabs.audit.onclick = () => showTab('audit');
-tabs.wf.onclick = () => showTab('wf');
-tabs.report.onclick = () => showTab('report');
+
+function navigate(k, replace){
+  /* con file:// no se puede usar la History API sobre rutas: caemos al hash */
+  const usePath = location.protocol === 'http:' || location.protocol === 'https:';
+  const url = usePath ? ROUTES[k] + location.search : location.pathname + location.search + '#' + ROUTES[k];
+  try{ history[replace ? 'replaceState' : 'pushState']({tab:k}, '', url); }catch(e){}
+}
+
+Object.keys(tabs).forEach(k => { tabs[k].onclick = () => showTab(k); });
+window.addEventListener('popstate', () => { showTab(tabFromPath() || 'flow', {nav:false}); });
 
 /* ---------- Side panel ---------- */
 const panel = document.getElementById('panel');
@@ -1757,8 +1782,8 @@ appMenu.addEventListener('click', () => appMenu.classList.remove('open'));
 
 /* ---------- Share link ---------- */
 document.getElementById('btnShare').onclick = async () => {
-  const url = location.href.split('#')[0];
-  try{ await navigator.clipboard.writeText(url); showTip('Link copiado ✓ — cualquiera con él ve y edita lo mismo'); }
+  const url = location.href;
+  try{ await navigator.clipboard.writeText(url); showTip(`Link de "${TITLES[currentTab]}" copiado ✓ — abre en esta misma sección`); }
   catch(e){ showTip(url); }
 };
 
@@ -1767,6 +1792,7 @@ fitAll();
 renderAudit();
 renderReport();
 renderWf();
+showTab(tabFromPath() || 'flow', {replace:true});   /* la URL manda al cargar */
 loadState();
 </script>
 </body>
